@@ -15,7 +15,7 @@
 
 <br/>
 
-> 🏆 **Domain Winners** — GLITCHCON 2.0 · National Hackathon at VIT
+> 🏆 **Domain Winners** — GLITCHCON 2.0 · National Hackathon at vellore institute of technology
 > HackerRank × MellonAI × Kathir Memorial Hospital × Arpina Solutions
 > **March 9–10, 2026 · MG Auditorium, VIT**
 
