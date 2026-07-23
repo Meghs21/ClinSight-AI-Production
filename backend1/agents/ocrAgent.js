@@ -81,9 +81,9 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
       }
     }
 
-    // Step 2: Fall back to Pluggable OCR Provider Architecture (Tesseract/Azure)
+    // Step 2: Fall back to Pluggable OCR Provider Architecture (Gemini Vision / Tesseract / Azure)
     if (!rawText) {
-      const provider = getOCRProvider();
+      const provider = getOCRProvider(filePath);
       const ocrRes = await provider.processDocument(filePath);
       rawText = ocrRes.text;
       ocrMeta = { provider: ocrRes.provider, confidence: ocrRes.confidence, version: ocrRes.version };
