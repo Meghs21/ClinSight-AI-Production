@@ -9,12 +9,13 @@ async function uploadDocument(req, res) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const { patientId, apiKey, model } = req.body || {};
+    const { patientId, apiKey, model, autoIngest } = req.body || {};
     const filePath = req.file.path;
 
     const ocrResult = await processUploadedDocument(filePath, apiKey, model);
 
-    if (patientId && ocrResult.success && ocrResult.structured) {
+    const shouldAutoIngest = autoIngest !== false && autoIngest !== 'false';
+    if (patientId && ocrResult.success && ocrResult.structured && shouldAutoIngest) {
       await runIngestionAgent(patientId, ocrResult.structured);
     }
 
