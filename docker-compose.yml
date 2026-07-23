@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: clinsight-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: clinsight
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clinsight_db_password_2026
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend1/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  backend:
+    build:
+      context: ./backend1
+      dockerfile: Dockerfile
+    container_name: clinsight-backend
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - DATABASE_URL=postgresql://postgres:clinsight_db_password_2026@postgres:5432/clinsight
+      - JWT_SECRET=clinsight_production_jwt_secret_key_2026
+      - ALLOW_ANONYMOUS=false
+    depends_on:
+      - postgres
+
+  frontend:
+    build:
+      context: ./v0-hackathon-development-order
+      dockerfile: Dockerfile
+    container_name: clinsight-frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:4000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
