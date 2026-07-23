@@ -2,12 +2,26 @@ require("dotenv").config();
 
 const fs = require("fs");
 const path = require("path");
-const { getOCRProvider } = require("../ocr/ocrProvider");
+const { getOCRProvider, GeminiVisionProvider, TesseractProvider } = require("../ocr/ocrProvider");
 const { isDigitalNativePDF, extractDigitalPDFText } = require("../ocr/pdfRouter");
+const { detectHandwriting } = require("../ocr/handwritingDetector");
 const { wrapDocumentPayloadWithProvenance } = require("../ocr/provenanceEngine");
 const { validate_biological_bounds } = require("../tools/patientTools");
 const llmGateway = require("../services/llmGateway");
 
+// 1. File Validation
+function validateFile(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) {
+    return { valid: false, error: `File not found: ${filePath}` };
+  }
+  const stats = fs.statSync(filePath);
+  if (stats.size > 25 * 1024 * 1024) { // 25MB limit
+    return { valid: false, error: "File size exceeds 25MB safety limit" };
+  }
+  return { valid: true };
+}
+
+// 2. Document Classification
 function classifyDocument(rawText) {
   const text = (rawText || "").toLowerCase();
   if (text.includes("reference range") || text.includes("biological interval") || text.includes("mg/dl") || text.includes("hba1c")) {
@@ -64,16 +78,19 @@ function heuristicExtract(rawText) {
 
 async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) {
   try {
-    if (!fs.existsSync(filePath)) {
-      return { success: false, error: `File not found: ${filePath}` };
+    // Stage 1: File Validation
+    const fileVal = validateFile(filePath);
+    if (!fileVal.valid) {
+      return { success: false, error: fileVal.error };
     }
 
     let ocrMeta = null;
     let rawText = "";
 
-    // Step 1: Check Digital PDF Fast-Path Router (<20ms)
-    const isDigitalPDF = await isDigitalNativePDF(filePath);
-    if (isDigitalPDF) {
+    // Stage 2 & 3: Document Inspection & Has Embedded Text?
+    const hasEmbeddedText = await isDigitalNativePDF(filePath);
+    if (hasEmbeddedText) {
+      // Branch 1: PDF/Text Extraction (<20ms Fast Path)
       const pdfRes = await extractDigitalPDFText(filePath);
       if (pdfRes.success) {
         rawText = pdfRes.text;
@@ -81,22 +98,37 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
       }
     }
 
-    // Step 2: Fall back to Pluggable OCR Provider Architecture (Gemini Vision / Tesseract / Azure)
+    // Branch 2: Image Preprocessing & Handwriting Detection
     if (!rawText) {
-      const provider = getOCRProvider(filePath);
+      const hwCheck = await detectHandwriting(filePath);
+      let provider = null;
+
+      if (hwCheck.isHandwritten) {
+        // Sub-Branch A: Mostly Handwritten? YES -> Vision OCR Provider (GeminiVisionProvider)
+        provider = new GeminiVisionProvider();
+      } else {
+        // Sub-Branch B: Mostly Handwritten? NO -> OCR Provider Factory (Tesseract / Azure)
+        provider = getOCRProvider(filePath);
+      }
+
       const ocrRes = await provider.processDocument(filePath);
       rawText = ocrRes.text;
-      ocrMeta = { provider: ocrRes.provider, confidence: ocrRes.confidence, version: ocrRes.version };
+      ocrMeta = {
+        provider: ocrRes.provider,
+        confidence: ocrRes.confidence,
+        version: ocrRes.version,
+        isHandwritten: hwCheck.isHandwritten,
+      };
     }
 
     if (!rawText || !rawText.trim()) {
       return { success: false, error: "OCR produced empty text" };
     }
 
-    // Step 3: Document Classification
+    // Stage 4: Document Classification
     const docCategory = classifyDocument(rawText);
 
-    // Step 4: Information Extraction via LLM Gateway
+    // Stage 5: Clinical Entity Extraction via LLM Gateway
     let structured = null;
     try {
       const llmRes = await llmGateway.generateJSON({
@@ -120,10 +152,10 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
       structured = heuristicExtract(rawText);
     }
 
-    // Step 5: Biological Range Validation
+    // Stage 6: Validation (Biological Bounds Checking)
     const rangeViolations = validate_biological_bounds(structured.lab_results || {});
 
-    // Step 6: Field Provenance & Versioning Wrap
+    // Stage 7: Wrap Payload with Field Provenance & Versioning Tags
     const wrapped = wrapDocumentPayloadWithProvenance(structured, ocrMeta);
 
     return {
@@ -137,11 +169,12 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
       confidence_summary: wrapped.confidence_summary,
       validation_violations: rangeViolations,
       parser: ocrMeta.provider,
+      requires_human_review: rangeViolations.length > 0 || ocrMeta.confidence < 0.85,
     };
   } catch (error) {
     return {
       success: false,
-      error: "OCR agent failed",
+      error: "OCR pipeline processing failed",
       message: error.message,
     };
   }
