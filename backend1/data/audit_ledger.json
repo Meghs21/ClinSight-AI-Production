@@ -1,0 +1,12 @@
+[
+  {
+    "index": 0,
+    "timestamp": "2026-07-23T05:19:26.645Z",
+    "action": "CHAIN_INITIALIZED",
+    "actorId": "SYSTEM",
+    "patientId": null,
+    "details": "Kathir Memorial Hospital — Patient Intelligence Blockchain Audit Ledger initialized",
+    "previousHash": "0000000000000000",
+    "hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e"
+  }
+]
