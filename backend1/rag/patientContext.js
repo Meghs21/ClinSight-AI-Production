@@ -300,11 +300,53 @@ async function resolvePatientIdByName(name) {
   return null;
 }
 
+function getFromLocalFiles(patientId) {
+  const dataDir = path.join(__dirname, '../data');
+  const targetFile = path.join(dataDir, `patient_${patientId}.json`);
+  if (!fs.existsSync(targetFile)) return null;
+  try {
+    const p = JSON.parse(fs.readFileSync(targetFile, 'utf8'));
+    const visits = (p.visits || []).map((v) => ({
+      date: v.date,
+      doctor: v.doctor || 'Doctor',
+      department: v.department || 'General Medicine',
+      doctor_notes: v.clinicalNote || v.plan || '',
+      symptoms: String(v.chiefComplaint || '').split(',').map((s) => s.trim()),
+    }));
+    const meds = (p.medications || []).map((m) => ({
+      drug: m.name || m.drug,
+      dose: m.dose || '',
+      frequency: m.frequency || '',
+      since: m.since || m.start_date || null,
+      active: true,
+    }));
+    const labs = [];
+    if (p.labResults) {
+      Object.entries(p.labResults).forEach(([test, rows]) => {
+        (rows || []).forEach((r) => {
+          labs.push({ test, value: r.value || r.systolic, unit: r.unit || '', status: r.status || '', date: r.date });
+        });
+      });
+    }
+    return normalizeBundle(
+      { patient_id: p.id, name: p.name, age: p.age, gender: p.gender, diagnosis: p.primaryDiagnosis || [], allergies: p.allergies || [] },
+      visits,
+      meds,
+      labs,
+      []
+    );
+  } catch {
+    return null;
+  }
+}
+
 async function getPatientContext(patientId) {
   const fromMongo = await getFromMongo(patientId).catch(() => null);
   if (fromMongo) return { source: 'mongo', ...fromMongo };
   const fromDataset = getFromDataset(patientId);
   if (fromDataset) return { source: 'dataset', ...fromDataset };
+  const fromLocal = getFromLocalFiles(patientId);
+  if (fromLocal) return { source: 'local_file', ...fromLocal };
   return null;
 }
 

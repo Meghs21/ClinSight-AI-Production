@@ -224,7 +224,15 @@ Requirements:
 
 async function runRagDoctorQuery(patientId, query, apiKey, model = 'llama-3.3-70b-versatile') {
   let effectivePatientId = patientId;
-  const explicitNameInQuery = extractLikelyPatientName(query);
+  let effectiveQuery = query;
+
+  // Handle swapped signature (query, patientId)
+  if (typeof patientId === 'string' && patientId.length > 8 && typeof query === 'string' && /^P\d+/i.test(query)) {
+    effectivePatientId = query;
+    effectiveQuery = patientId;
+  }
+
+  const explicitNameInQuery = extractLikelyPatientName(effectiveQuery);
   const allPatientsMode = !effectivePatientId || effectivePatientId === 'all-patients' || effectivePatientId === 'ALL';
 
   if (allPatientsMode) {
@@ -251,22 +259,36 @@ async function runRagDoctorQuery(patientId, query, apiKey, model = 'llama-3.3-70
       effectivePatientId = resolved.patient_id;
     }
   } else if (explicitNameInQuery) {
-    // If query explicitly asks for another patient, switch context to that patient.
-    const resolved = await resolvePatientIdByName(explicitNameInQuery);
-    if (!resolved?.patient_id) {
-      return {
-        error: `Patient not found: ${explicitNameInQuery}`,
-      };
-    }
-    if (resolved.patient_id !== effectivePatientId) {
+    // Only switch context if explicit name matches a real patient
+    const resolved = await resolvePatientIdByName(explicitNameInQuery).catch(() => null);
+    if (resolved?.patient_id) {
       effectivePatientId = resolved.patient_id;
     }
   }
 
-  const client = new Groq({ apiKey: apiKey || process.env.GROQ_API_KEY });
+  let client = null;
+  try {
+    const key = apiKey || process.env.GROQ_API_KEY;
+    if (key) client = new Groq({ apiKey: key });
+  } catch {
+    client = null;
+  }
+
   const { hits, bundle: firstBundle } = await ensureVectorContext(effectivePatientId, query);
   const bundle = firstBundle || (await getPatientContext(effectivePatientId));
   if (!bundle) return { error: `Patient ${effectivePatientId} not found in Mongo/dataset.` };
+
+  if (!client) {
+    return {
+      success: true,
+      patientId: effectivePatientId,
+      source: bundle.source || 'dataset',
+      response: buildFallbackSummaryFromBundle(bundle, 'Groq API Key not configured'),
+      answer: buildFallbackSummaryFromBundle(bundle, 'Groq API Key not configured'),
+      rag_hits: hits.slice(0, 5),
+      fallback: true,
+    };
+  }
 
   const requestedWordCount = getRequestedWordCount(query);
   const detailed = wantsDetailedOutput(query) || Boolean(requestedWordCount);
@@ -309,20 +331,26 @@ ${context}`,
       ],
     });
 
+    const ans = response.choices?.[0]?.message?.content || '';
     return {
+      success: true,
       patientId: effectivePatientId,
       source: bundle.source,
-      answer: response.choices?.[0]?.message?.content || '',
+      answer: ans,
+      response: ans,
       rag_hits: hits.slice(0, 5),
     };
   } catch (err) {
     if (!isGroqRateLimitError(err)) throw err;
     const retryAfter = extractRetryAfterText(err) || 'please retry shortly';
+    const fallbackAns = buildFallbackAnswerFromBundle(bundle, query, retryAfter);
     return {
+      success: true,
       patientId: effectivePatientId,
       source: 'fallback',
       fallback: true,
-      answer: buildFallbackAnswerFromBundle(bundle, query, retryAfter),
+      answer: fallbackAns,
+      response: fallbackAns,
       rag_hits: hits.slice(0, 5),
       limit_reason: retryAfter,
     };

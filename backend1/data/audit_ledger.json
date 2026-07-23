@@ -8,5 +8,25 @@
     "details": "Kathir Memorial Hospital — Patient Intelligence Blockchain Audit Ledger initialized",
     "previousHash": "0000000000000000",
     "hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e"
+  },
+  {
+    "index": 1,
+    "timestamp": "2026-07-23T08:29:56.638Z",
+    "action": "DOCTOR_CONSULTATION_COMPLETED",
+    "actorId": "D001",
+    "patientId": "P001",
+    "details": "Doctor completed consultation brief review & RAG Q&A",
+    "previousHash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+    "hash": "01919613914777d665113b9395971e20b3c8312e3dbb3878c54c95b447d54d97"
+  },
+  {
+    "index": 2,
+    "timestamp": "2026-07-23T08:30:05.135Z",
+    "action": "DOCTOR_CONSULTATION_COMPLETED",
+    "actorId": "D001",
+    "patientId": "P001",
+    "details": "Doctor completed consultation brief review & RAG Q&A",
+    "previousHash": "01919613914777d665113b9395971e20b3c8312e3dbb3878c54c95b447d54d97",
+    "hash": "e75d96710705d2ccd39154170d6cf8085dc6355f7f617f1e3bb81cc76572c733"
   }
 ]
