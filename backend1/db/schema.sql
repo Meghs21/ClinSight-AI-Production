@@ -1,5 +1,17 @@
 -- ClinSight AI PostgreSQL Database Schema
 
+-- 0. Users Table (System Accounts & Authentication)
+CREATE TABLE IF NOT EXISTS users (
+    id VARCHAR(100) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL DEFAULT 'doctor',
+    department VARCHAR(255),
+    patient_id VARCHAR(50),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 1. Audit Logs Table (Persistent Audit Trail)
 CREATE TABLE IF NOT EXISTS audit_logs (
     id SERIAL PRIMARY KEY,
@@ -72,6 +84,7 @@ CREATE TABLE IF NOT EXISTS labs (
 );
 
 -- Indices for rapid lookup
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_audit_patient_id ON audit_logs(patient_id);
 CREATE INDEX IF NOT EXISTS idx_visits_patient_id ON visits(patient_id);
 CREATE INDEX IF NOT EXISTS idx_labs_patient_id ON labs(patient_id);
