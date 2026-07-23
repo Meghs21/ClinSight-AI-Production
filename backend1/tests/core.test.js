@@ -62,4 +62,19 @@ test('PipelineContext should track stages and format response cleanly', () => {
   assert.equal(response.human_review_required, false);
 });
 
+test('LLMGateway should provide fallback text and json generation', async () => {
+  const llmGateway = require('../services/llmGateway');
+  const res = await llmGateway.generateText({ prompt: 'Hello clinical assistant' });
+  assert.ok(typeof res.text === 'string');
+  assert.ok(res.provider);
+});
+
+test('vectorStore should produce 1536-dimensional normalized embeddings', async () => {
+  const { getEmbedding } = require('../rag/vectorStore');
+  const vec = await getEmbedding('HbA1c level 8.2 percent worsening diabetic trajectory');
+  assert.equal(vec.length, 1536);
+  const mag = Math.sqrt(vec.reduce((sum, v) => sum + v * v, 0));
+  assert.ok(Math.abs(mag - 1.0) < 0.01);
+});
+
 

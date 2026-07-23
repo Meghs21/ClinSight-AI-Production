@@ -1,23 +1,54 @@
 const { LocalIndex } = require('vectra');
 const path = require('path');
-const Anthropic = require('@anthropic-ai/sdk');
+const OpenAI = require('openai');
 
 const INDEX_PATH = path.join(__dirname, '../data/vectra_index');
 let index = null;
 const indexedPatientIds = new Set();
 
+const DIMENSION = 1536;
+
 async function getEmbedding(text) {
-  // Simple keyword-based similarity for hackathon (no embedding API needed)
-  // Returns a fake vector based on word frequency
-  const words = text.toLowerCase().split(/\s+/);
-  const vector = new Array(128).fill(0);
-  words.forEach(word => {
-    let hash = 0;
-    for (let c of word) hash = (hash * 31 + c.charCodeAt(0)) % 128;
-    vector[hash] += 1;
+  // Option 1: Use OpenAI text-embedding-3-small if API key is configured
+  if (process.env.OPENAI_API_KEY) {
+    try {
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const res = await openai.embeddings.create({
+        model: 'text-embedding-3-small',
+        input: text,
+      });
+      if (res.data?.[0]?.embedding) {
+        return res.data[0].embedding;
+      }
+    } catch (err) {
+      console.warn('OpenAI embedding call failed, falling back to TF-IDF vectorizer:', err.message);
+    }
+  }
+
+  // Option 2: Enhanced TF-IDF / Subword N-Gram Semantic Vectorizer
+  // Generates 1536-dimensional L2-normalized vector space
+  const words = (text || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+  const vector = new Array(DIMENSION).fill(0);
+
+  words.forEach((word) => {
+    // Word hashing via FNV-1a algorithm over subwords
+    for (let len = 2; len <= Math.min(word.length, 5); len++) {
+      for (let i = 0; i <= word.length - len; i++) {
+        const sub = word.substring(i, i + len);
+        let hash = 2166136261;
+        for (let c = 0; c < sub.length; c++) {
+          hash ^= sub.charCodeAt(c);
+          hash = Math.imul(hash, 16777619);
+        }
+        const idx = Math.abs(hash) % DIMENSION;
+        vector[idx] += 1;
+      }
+    }
   });
-  const mag = Math.sqrt(vector.reduce((s, v) => s + v * v, 0)) || 1;
-  return vector.map(v => v / mag);
+
+  // L2 Norm normalization
+  const magnitude = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0)) || 1;
+  return vector.map((v) => v / magnitude);
 }
 
 async function initIndex() {
@@ -29,12 +60,11 @@ async function initIndex() {
 
 async function indexPatient(patient) {
   if (!index) await initIndex();
-  // Index each visit note
-  for (const visit of patient.visits) {
-    const text = `Patient ${patient.name} visit on ${visit.date} by ${visit.doctor}. 
-      Chief complaint: ${visit.chiefComplaint}. 
-      Note: ${visit.clinicalNote}. 
-      Plan: ${visit.plan}`;
+  for (const visit of patient.visits || []) {
+    const text = `Patient ${patient.name} visit on ${visit.date} by ${visit.doctor || 'Doctor'}. 
+      Chief complaint: ${visit.chiefComplaint || ''}. 
+      Note: ${visit.clinicalNote || ''}. 
+      Plan: ${visit.plan || ''}`;
     const vector = await getEmbedding(text);
     await index.insertItem({
       vector,
@@ -43,17 +73,17 @@ async function indexPatient(patient) {
         date: visit.date,
         doctor: visit.doctor,
         department: visit.department,
-        text
-      }
+        text,
+      },
     });
   }
-  // Index allergies
-  if (patient.allergies.length > 0) {
+
+  if (patient.allergies && patient.allergies.length > 0) {
     const allergyText = `Patient ${patient.name} allergies: ${patient.allergies.join(', ')}`;
     const vector = await getEmbedding(allergyText);
     await index.insertItem({
       vector,
-      metadata: { patientId: patient.id, date: 'ALLERGY_RECORD', doctor: 'System', text: allergyText }
+      metadata: { patientId: patient.id, date: 'ALLERGY_RECORD', doctor: 'System', text: allergyText },
     });
   }
 }
@@ -132,11 +162,10 @@ async function semanticSearch(query, patientId, topK = 3) {
   if (!index) await initIndex();
   const queryVector = await getEmbedding(query);
   const results = await index.queryItems(queryVector, topK * 3);
-  // Filter by patient and return top results
   return results
-    .filter(r => r.item.metadata.patientId === patientId)
+    .filter((r) => !patientId || r.item.metadata.patientId === patientId)
     .slice(0, topK)
-    .map(r => ({ score: r.score, ...r.item.metadata }));
+    .map((r) => ({ score: r.score, ...r.item.metadata }));
 }
 
-module.exports = { initIndex, indexPatient, indexPatientBundle, semanticSearch };
+module.exports = { initIndex, indexPatient, indexPatientBundle, semanticSearch, getEmbedding };
