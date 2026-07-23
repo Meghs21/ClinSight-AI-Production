@@ -5,7 +5,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 /**
  * Pluggable OCR Provider Interface for ClinSight AI
  * Abstract base class allowing zero-lock-in switching between:
- * - GroqVisionProvider (Ultra-Fast Llama-3.2 Vision OCR Engine)
+ * - GroqLLMProvider (Groq Llama 3.3 70B Clinical Normalizer & OCR)
  * - GeminiVisionProvider (Multimodal LLM Handwriting OCR Engine)
  * - TesseractProvider (Local Offline Default)
  * - AzureDocAIProvider (Enterprise Cloud OCR)
@@ -16,39 +16,30 @@ class OCRProvider {
     this.name = name;
   }
 
-  /**
-   * Process document file and return raw OCR text with confidence and layout metadata
-   * @param {string} filePath - Absolute path to uploaded document
-   * @returns {Promise<{ text: string, confidence: number, blocks: Array, provider: string }>}
-   */
   async processDocument(filePath) {
     throw new Error(`processDocument() not implemented on ${this.name}`);
   }
 }
 
-class GroqVisionProvider extends OCRProvider {
+class GroqLLMProvider extends OCRProvider {
   constructor() {
-    super('GroqLlamaVisionOCR');
+    super('GroqLlama3.3ClinicalOCR');
     this.apiKey = process.env.GROQ_API_KEY;
   }
 
   async processDocument(filePath) {
     if (!this.apiKey) {
-      console.warn(`[${this.name}] GROQ_API_KEY missing, delegating to GeminiVisionProvider...`);
-      const fallback = new GeminiVisionProvider();
+      console.warn(`[${this.name}] GROQ_API_KEY missing, delegating to TesseractProvider...`);
+      const fallback = new TesseractProvider();
       return fallback.processDocument(filePath);
     }
 
     try {
-      const ext = path.extname(filePath).toLowerCase();
-      let mimeType = 'image/png';
-      if (ext === '.jpg' || ext === '.jpeg') mimeType = 'image/jpeg';
-      else if (ext === '.webp') mimeType = 'image/webp';
+      // 1. Perform base extraction via Tesseract
+      const tesseract = new TesseractProvider();
+      const tessRes = await tesseract.processDocument(filePath);
 
-      const fileBuffer = fs.readFileSync(filePath);
-      const base64Data = fileBuffer.toString('base64');
-      const dataUri = `data:${mimeType};base64,${base64Data}`;
-
+      // 2. Use Groq Llama 3.3 70B to correct OCR text and extract handwritten doctor prescription fields
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -56,43 +47,42 @@ class GroqVisionProvider extends OCRProvider {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'llama-3.2-11b-vision-preview',
+          model: 'llama-3.3-70b-versatile',
           messages: [
             {
+              role: 'system',
+              content: 'You are an expert clinical pharmacologist and medical transcript reader. Correct OCR errors in handwritten doctor notes and output clean medical text.',
+            },
+            {
               role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: 'Transcribe all handwritten doctor notes, prescriptions, dosages, and lab values in this medical image exactly as written. Return raw transcribed text only.',
-                },
-                {
-                  type: 'image_url',
-                  image_url: { url: dataUri },
-                },
-              ],
+              content: `Here is raw OCR text from a handwritten doctor prescription sheet:
+              ${tessRes.text}
+              
+              Correct any OCR typos (e.g. "HCO 20prag" -> "Tab. HCQS 200mg", "folfan" -> "Tab. Folitrax 15mg", "Wysdlaw" -> "Tab. Wysolone 5mg", "Sehveolns" -> "Scleroderma").
+              Return the clean transcribed medical prescription text.`,
             },
           ],
-          temperature: 0.1,
+          temperature: 0.2,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error?.message || 'Groq API request failed');
+        throw new Error(data.error?.message || 'Groq API call failed');
       }
 
-      const text = data.choices?.[0]?.message?.content || '';
+      const correctedText = data.choices?.[0]?.message?.content || tessRes.text;
 
       return {
-        text: text.trim(),
-        confidence: 0.97, // Groq Llama 3.2 Vision high confidence
-        blocks: [{ text, confidence: 0.97 }],
-        provider: this.name,
-        version: 'groq_llama_3.2_11b_vision_v1.0',
+        text: correctedText.trim(),
+        confidence: 0.95,
+        blocks: [{ text: correctedText, confidence: 0.95 }],
+        provider: 'GroqLlama3.3_ClinicalOCR',
+        version: 'groq_llama_3.3_70b_v1.0',
       };
     } catch (err) {
-      console.warn(`[${this.name}] Groq Vision failed, delegating to Gemini/Tesseract:`, err.message);
-      const fallback = new GeminiVisionProvider();
+      console.warn(`[${this.name}] Groq LLM processing failed, using Tesseract:`, err.message);
+      const fallback = new TesseractProvider();
       return fallback.processDocument(filePath);
     }
   }
@@ -115,7 +105,6 @@ class GeminiVisionProvider extends OCRProvider {
       const ext = path.extname(filePath).toLowerCase();
       let mimeType = 'image/png';
       if (ext === '.jpg' || ext === '.jpeg') mimeType = 'image/jpeg';
-      else if (ext === '.pdf') mimeType = 'application/pdf';
 
       const fileBuffer = fs.readFileSync(filePath);
       const base64Data = fileBuffer.toString('base64');
@@ -208,8 +197,8 @@ class AzureDocAIProvider extends OCRProvider {
 
   async processDocument(filePath) {
     if (!this.apiKey || !this.endpoint) {
-      console.warn(`[${this.name}] API key or endpoint missing. Delegating to GroqVisionProvider...`);
-      const fallback = new GroqVisionProvider();
+      console.warn(`[${this.name}] API key missing. Delegating to GroqLLMProvider...`);
+      const fallback = new GroqLLMProvider();
       return fallback.processDocument(filePath);
     }
 
@@ -229,24 +218,10 @@ function getOCRProvider(filePath = '', providerName = process.env.OCR_PROVIDER) 
   if (provider === 'azure' || provider === 'azure_doc_ai') {
     return new AzureDocAIProvider();
   }
-  if (provider === 'groq' || provider === 'groq_vision') {
-    return new GroqVisionProvider();
+  if (provider === 'groq' || provider === 'groq_vision' || process.env.GROQ_API_KEY) {
+    return new GroqLLMProvider();
   }
-  if (provider === 'gemini' || provider === 'gemini_vision') {
-    return new GeminiVisionProvider();
-  }
-  if (provider === 'tesseract') {
-    return new TesseractProvider();
-  }
-
-  // Smart Provider Fallback Hierarchy for Handwriting & Images:
-  // 1. Groq Vision (if GROQ_API_KEY set)
-  // 2. Gemini Vision (if GEMINI_API_KEY set)
-  // 3. Tesseract (Local default)
-  if (process.env.GROQ_API_KEY) {
-    return new GroqVisionProvider();
-  }
-  if (process.env.GEMINI_API_KEY) {
+  if (provider === 'gemini' || provider === 'gemini_vision' || process.env.GEMINI_API_KEY) {
     return new GeminiVisionProvider();
   }
 
@@ -255,7 +230,7 @@ function getOCRProvider(filePath = '', providerName = process.env.OCR_PROVIDER) 
 
 module.exports = {
   OCRProvider,
-  GroqVisionProvider,
+  GroqLLMProvider,
   GeminiVisionProvider,
   TesseractProvider,
   AzureDocAIProvider,

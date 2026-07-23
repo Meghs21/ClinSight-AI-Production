@@ -104,8 +104,8 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
       let provider = null;
 
       if (hwCheck.isHandwritten) {
-        // Sub-Branch A: Mostly Handwritten? YES -> Vision OCR Provider (GeminiVisionProvider)
-        provider = new GeminiVisionProvider();
+        // Sub-Branch A: Mostly Handwritten? YES -> Vision OCR Provider (Groq / Gemini Vision)
+        provider = getOCRProvider(filePath, 'groq');
       } else {
         // Sub-Branch B: Mostly Handwritten? NO -> OCR Provider Factory (Tesseract / Azure)
         provider = getOCRProvider(filePath);
