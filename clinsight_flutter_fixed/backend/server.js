@@ -37,9 +37,13 @@ const labs = safeReadJson('labs.json', []);
 app.post('/api/auth/login', (req, res) => {
   const { email, password, role } = req.body || {};
 
+  const doctorEmail = process.env.DOCTOR_EMAIL || 'nandakumar@kathir.in';
+  const doctorPassword = process.env.DOCTOR_PASSWORD;
+
   if (
-    email === 'nandakumar@kathir.in' &&
-    password === 'doctor123' &&
+    email === doctorEmail &&
+    doctorPassword &&
+    password === doctorPassword &&
     role === 'doctor'
   ) {
     return res.json({
