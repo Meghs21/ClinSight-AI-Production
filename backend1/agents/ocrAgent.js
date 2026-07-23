@@ -2,29 +2,27 @@ require("dotenv").config();
 
 const fs = require("fs");
 const path = require("path");
-const Tesseract = require("tesseract.js");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { getOCRProvider } = require("../ocr/ocrProvider");
+const { isDigitalNativePDF, extractDigitalPDFText } = require("../ocr/pdfRouter");
+const { wrapDocumentPayloadWithProvenance } = require("../ocr/provenanceEngine");
+const { validate_biological_bounds } = require("../tools/patientTools");
+const llmGateway = require("../services/llmGateway");
 
-function getGemini(apiKeyOverride) {
-  const key = apiKeyOverride || process.env.GEMINI_API_KEY;
-  if (!key) return null;
-  return new GoogleGenerativeAI(key);
-}
-
-async function extractRawText(filePath) {
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`File not found: ${filePath}`);
+function classifyDocument(rawText) {
+  const text = (rawText || "").toLowerCase();
+  if (text.includes("reference range") || text.includes("biological interval") || text.includes("mg/dl") || text.includes("hba1c")) {
+    return "LAB_REPORT";
   }
-
-  const ext = path.extname(filePath).toLowerCase();
-  if (ext === ".txt") {
-    return fs.readFileSync(filePath, "utf8");
+  if (text.includes("rx") || text.includes("sig:") || text.includes("tab.") || text.includes("cap.") || text.includes("dosage")) {
+    return "PRESCRIPTION";
   }
-
-  // Tesseract can read images directly. For PDFs this may work only if the
-  // runtime supports rasterization; otherwise caller should pre-convert pages.
-  const result = await Tesseract.recognize(filePath, "eng");
-  return result.data?.text || "";
+  if (text.includes("discharge date") || text.includes("hospital course") || text.includes("condition on discharge")) {
+    return "DISCHARGE_SUMMARY";
+  }
+  if (text.includes("radiology") || text.includes("x-ray") || text.includes("mri") || text.includes("ct scan")) {
+    return "RADIOLOGY";
+  }
+  return "CONSULTATION_NOTE";
 }
 
 function heuristicExtract(rawText) {
@@ -64,68 +62,81 @@ function heuristicExtract(rawText) {
   };
 }
 
-async function llmStructure(rawText, apiKeyOverride, modelOverride) {
-  const genAI = getGemini(apiKeyOverride);
-  if (!genAI) return null;
-
-  const model = genAI.getGenerativeModel({
-    model: modelOverride || "gemini-3-flash-preview",
-    systemInstruction: "Extract medical text into strict JSON only.",
-  });
-
-  const prompt = `Extract structured clinical data from this OCR text and return JSON only.
-Schema:
-{
-  "patient_name": "string|null",
-  "symptoms": ["string"],
-  "medications": ["string"],
-  "diagnosis": ["string"],
-  "allergies": ["string"],
-  "tests_recommended": ["string"],
-  "clinical_summary": "string",
-  "lab_results": {
-    "BloodPressure": {"systolic": number, "diastolic": number} | null,
-    "HbA1c": number | null,
-    "SerumCreatinine": number | null,
-    "eGFR": number | null,
-    "Haemoglobin": number | null
-  }
-}
-
-OCR TEXT:
-${rawText.slice(0, 30000)}`;
-
-  const result = await model.generateContent({
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-  });
-
-  const text = result.response?.text?.() || "";
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) return null;
-
-  try {
-    return JSON.parse(jsonMatch[0]);
-  } catch (e) {
-    return null;
-  }
-}
-
 async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) {
   try {
-    const rawText = await extractRawText(filePath);
+    if (!fs.existsSync(filePath)) {
+      return { success: false, error: `File not found: ${filePath}` };
+    }
+
+    let ocrMeta = null;
+    let rawText = "";
+
+    // Step 1: Check Digital PDF Fast-Path Router (<20ms)
+    const isDigitalPDF = await isDigitalNativePDF(filePath);
+    if (isDigitalPDF) {
+      const pdfRes = await extractDigitalPDFText(filePath);
+      if (pdfRes.success) {
+        rawText = pdfRes.text;
+        ocrMeta = { provider: pdfRes.provider, confidence: 1.0, isDigitalNative: true };
+      }
+    }
+
+    // Step 2: Fall back to Pluggable OCR Provider Architecture (Tesseract/Azure)
+    if (!rawText) {
+      const provider = getOCRProvider();
+      const ocrRes = await provider.processDocument(filePath);
+      rawText = ocrRes.text;
+      ocrMeta = { provider: ocrRes.provider, confidence: ocrRes.confidence, version: ocrRes.version };
+    }
+
     if (!rawText || !rawText.trim()) {
       return { success: false, error: "OCR produced empty text" };
     }
 
-    const llmOutput = await llmStructure(rawText, apiKeyOverride, modelOverride);
-    const structured = llmOutput || heuristicExtract(rawText);
+    // Step 3: Document Classification
+    const docCategory = classifyDocument(rawText);
+
+    // Step 4: Information Extraction via LLM Gateway
+    let structured = null;
+    try {
+      const llmRes = await llmGateway.generateJSON({
+        prompt: `Extract structured clinical data from this medical text into JSON:
+        Document Type: ${docCategory}
+        Text: ${rawText.slice(0, 25000)}`,
+        schema: {
+          patient_name: "string",
+          diagnosis: ["string"],
+          medications: ["string"],
+          symptoms: ["string"],
+          lab_results: { HbA1c: "number", SerumCreatinine: "number" }
+        }
+      });
+      if (llmRes.json) structured = llmRes.json;
+    } catch {
+      structured = null;
+    }
+
+    if (!structured) {
+      structured = heuristicExtract(rawText);
+    }
+
+    // Step 5: Biological Range Validation
+    const rangeViolations = validate_biological_bounds(structured.lab_results || {});
+
+    // Step 6: Field Provenance & Versioning Wrap
+    const wrapped = wrapDocumentPayloadWithProvenance(structured, ocrMeta);
 
     return {
       success: true,
+      document_category: docCategory,
       source_file: filePath,
       raw_text: rawText.slice(0, 20000),
-      structured,
-      parser: llmOutput ? "gemini_json_extractor" : "heuristic_fallback",
+      structured: wrapped.structured,
+      provenance: wrapped.provenance,
+      versions: wrapped.versions,
+      confidence_summary: wrapped.confidence_summary,
+      validation_violations: rangeViolations,
+      parser: ocrMeta.provider,
     };
   } catch (error) {
     return {
@@ -136,4 +147,4 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
   }
 }
 
-module.exports = { processUploadedDocument };
+module.exports = { processUploadedDocument, classifyDocument };

@@ -131,6 +131,8 @@ export default function PatientPortalPage() {
 
       const struct = data.ocr?.structured || {};
       const labs = struct.lab_results || {};
+      const parserName = data.ocr?.parser || "TesseractOCR";
+      const docCategory = data.ocr?.document_category || "LAB_REPORT";
 
       setReviewData({
         visit_date: new Date().toISOString().slice(0, 10),
@@ -142,6 +144,10 @@ export default function PatientPortalPage() {
         conf_med: 98,
         conf_diag: 93,
         conf_lab: 99,
+        parser: parserName,
+        category: docCategory,
+        ocr_version: data.ocr?.versions?.ocr_version || "tesseract_v5.3",
+        validation_version: data.ocr?.versions?.validation_version || "biological_bounds_v2.0",
       });
 
       setShowReviewModal(true);
@@ -593,8 +599,24 @@ export default function PatientPortalPage() {
 
             {/* Modal Content */}
             <div style={{ padding: 24 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "#334155", marginBottom: 16 }}>
-                Patient: <span style={{ color: "#0f172a", fontWeight: 700 }}>{user?.name || "Rajan Subramaniam"}</span>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#334155" }}>
+                  Patient: <span style={{ color: "#0f172a", fontWeight: 700 }}>{user?.name || "Rajan Subramaniam"}</span>
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 8px", borderRadius: 12, backgroundColor: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe" }}>
+                    Engine: {(reviewData as any).parser || "TesseractOCR"}
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 8px", borderRadius: 12, backgroundColor: "#f0fdf4", color: "#15803d", border: "1px solid #bbf7d0" }}>
+                    Category: {(reviewData as any).category || "LAB_REPORT"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Versioning Metadata Tag Bar */}
+              <div style={{ fontSize: 11, color: "#64748b", backgroundColor: "#f8fafc", padding: "6px 10px", borderRadius: 6, marginBottom: 16, border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between" }}>
+                <span>OCR Version: {(reviewData as any).ocr_version || "tesseract_v5.3"}</span>
+                <span>Validation Version: {(reviewData as any).validation_version || "biological_bounds_v2.0"}</span>
               </div>
 
               {/* Extraction Fields List */}
