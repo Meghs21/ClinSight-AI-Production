@@ -4,11 +4,14 @@ const path = require('path');
 const DATA_DIR = path.join(__dirname, '../data');
 const DATASET_DIR = process.env.DATASET_DIR ? path.resolve(process.env.DATASET_DIR) : null;
 
-let MongoClient = null;
-try {
-  ({ MongoClient } = require('mongodb'));
-} catch {
-  MongoClient = null;
+let pgPool = null;
+if (process.env.DATABASE_URL) {
+  try {
+    const { Pool } = require('pg');
+    pgPool = new Pool({ connectionString: process.env.DATABASE_URL });
+  } catch {
+    pgPool = null;
+  }
 }
 
 function readJsonIfExists(baseDir, fileName) {
@@ -29,6 +32,28 @@ function datasetFilesAvailable() {
 
 class PatientRepository {
   async getAllPatients() {
+    // Attempt Postgres query if pool configured
+    if (pgPool) {
+      try {
+        const res = await pgPool.query('SELECT * FROM patients ORDER BY name ASC');
+        if (res.rows && res.rows.length > 0) {
+          return res.rows.map(r => ({
+            patient_id: r.patient_id,
+            name: r.name,
+            email: r.email,
+            age: r.age,
+            gender: r.gender,
+            diagnosis: r.diagnosis || [],
+            allergies: r.allergies || [],
+            status: r.status || 'stable',
+            lastVisit: r.last_visit || null,
+          }));
+        }
+      } catch (err) {
+        console.warn('Postgres query warning, falling back to JSON repository:', err.message);
+      }
+    }
+
     if (datasetFilesAvailable()) {
       const patients = readJsonIfExists(DATASET_DIR, 'patients.json') || [];
       const visits = readJsonIfExists(DATASET_DIR, 'visits.json') || [];
@@ -77,6 +102,32 @@ class PatientRepository {
 
   async getPatientById(id) {
     if (!id) return null;
+
+    if (pgPool) {
+      try {
+        const res = await pgPool.query('SELECT * FROM patients WHERE patient_id = $1', [id]);
+        if (res.rows && res.rows[0]) {
+          const p = res.rows[0];
+          const visitsRes = await pgPool.query('SELECT * FROM visits WHERE patient_id = $1 ORDER BY visit_date DESC', [id]);
+          const medsRes = await pgPool.query('SELECT * FROM medications WHERE patient_id = $1', [id]);
+          const labsRes = await pgPool.query('SELECT * FROM labs WHERE patient_id = $1 ORDER BY lab_date DESC', [id]);
+          return {
+            id: p.patient_id,
+            name: p.name,
+            age: p.age,
+            gender: p.gender,
+            diagnoses: p.diagnosis || [],
+            allergies: p.allergies || [],
+            visits: visitsRes.rows || [],
+            medications: medsRes.rows || [],
+            labs: labsRes.rows || [],
+          };
+        }
+      } catch (err) {
+        console.warn('Postgres query warning, falling back to JSON repository:', err.message);
+      }
+    }
+
     const targetFile = path.join(DATA_DIR, `patient_${id}.json`);
     if (fs.existsSync(targetFile)) {
       try {
@@ -86,7 +137,6 @@ class PatientRepository {
       }
     }
 
-    // Dataset fallback
     if (datasetFilesAvailable()) {
       const patients = readJsonIfExists(DATASET_DIR, 'patients.json') || [];
       const patient = patients.find((p) => String(p.patient_id) === String(id) || String(p.id) === String(id));
