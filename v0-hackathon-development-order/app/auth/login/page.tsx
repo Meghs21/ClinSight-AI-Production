@@ -12,13 +12,17 @@ export default function DoctorLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"doctor" | "patient">("doctor");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [focused, setFocused] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (document.cookie.includes("medai_auth=1")) router.replace("/dashboard");
+    if (document.cookie.includes("medai_auth=1")) {
+      const storedRole = localStorage.getItem("medai_role");
+      router.replace(storedRole === "patient" ? "/patient-portal" : "/dashboard");
+    }
   }, [router]);
 
   const onSubmit = async (e: FormEvent) => {
@@ -29,14 +33,20 @@ export default function DoctorLoginPage() {
       const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, role: "doctor" }),
+        body: JSON.stringify({ email, password, role }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Login failed");
+      const assignedRole = data.role || data.user?.role || role;
       localStorage.setItem("medai_user", JSON.stringify(data.user));
-      localStorage.setItem("medai_role", "doctor");
+      localStorage.setItem("medai_role", assignedRole);
       document.cookie = "medai_auth=1; path=/; max-age=2592000; samesite=lax";
-      router.push("/dashboard");
+      
+      if (assignedRole === "patient") {
+        router.push("/patient-portal");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -377,6 +387,48 @@ export default function DoctorLoginPage() {
             <p className="lr-sub">Sign in to access your patient dashboard and clinical insights.</p>
 
             <form onSubmit={onSubmit}>
+              {/* Role Selector Toggle */}
+              <div style={{ display: "flex", gap: 10, marginBottom: 20, padding: 4, backgroundColor: "#f1f5f9", borderRadius: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setRole("doctor")}
+                  style={{
+                    flex: 1,
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    border: "none",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    backgroundColor: role === "doctor" ? "#ffffff" : "transparent",
+                    color: role === "doctor" ? "#0f172a" : "#64748b",
+                    boxShadow: role === "doctor" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  👨‍⚕️ Doctor Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole("patient")}
+                  style={{
+                    flex: 1,
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    border: "none",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    backgroundColor: role === "patient" ? "#ffffff" : "transparent",
+                    color: role === "patient" ? "#0f172a" : "#64748b",
+                    boxShadow: role === "patient" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  👤 Patient Login
+                </button>
+              </div>
+
               {/* Email */}
               <div className="lr-field">
                 <div className="lr-field-top">
