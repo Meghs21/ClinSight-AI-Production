@@ -84,6 +84,18 @@ class TesseractProvider extends OCRProvider {
 
   async processDocument(filePath) {
     try {
+      const ext = path.extname(filePath).toLowerCase();
+      if (ext === '.txt') {
+        const text = fs.readFileSync(filePath, 'utf8');
+        return {
+          text,
+          confidence: 1.0,
+          blocks: [{ text, confidence: 1.0 }],
+          provider: this.name,
+          version: 'text_direct_parser_v1.0',
+        };
+      }
+
       const Tesseract = require('tesseract.js');
       const result = await Tesseract.recognize(filePath, 'eng');
       const text = result.data.text || '';
