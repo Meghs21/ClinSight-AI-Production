@@ -5,6 +5,7 @@ const helmet = require('helmet');
 
 const routes = require('./routes/index');
 const whatsappRoute = require('./routes/whatsapp');
+const { authenticateToken } = require('./middleware/authMiddleware');
 
 function createApp(io) {
   const app = express();
@@ -24,7 +25,7 @@ function createApp(io) {
     next();
   });
 
-  app.use('/api', routes);
+  app.use('/api', authenticateToken, routes);
   app.use('/api/whatsapp', whatsappRoute);
 
   app.get('/', (req, res) =>

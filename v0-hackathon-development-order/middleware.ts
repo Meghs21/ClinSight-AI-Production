@@ -13,7 +13,9 @@ function isPublicPath(pathname: string) {
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const isLoggedIn = req.cookies.get("medai_auth")?.value === "1";
+  const authCookie = req.cookies.get("medai_auth")?.value;
+  // Valid authentication cookie must exist and be non-empty token string
+  const isLoggedIn = Boolean(authCookie && authCookie.length >= 1 && authCookie !== "0");
 
   if (!isLoggedIn && !isPublicPath(pathname)) {
     const url = req.nextUrl.clone();

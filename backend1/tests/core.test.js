@@ -45,5 +45,8 @@ test('routes should include records compatibility endpoints', () => {
   assert.ok(routePaths.includes('/records/:id/labs'));
   assert.ok(routePaths.includes('/records/search'));
   assert.ok(routePaths.includes('/agent/query'));
+  assert.ok(routePaths.includes('/auth/login'));
+  assert.ok(routePaths.includes('/voice'));
+  assert.ok(routePaths.includes('/patient/:id/brief'));
 });
 
