@@ -50,3 +50,16 @@ test('routes should include records compatibility endpoints', () => {
   assert.ok(routePaths.includes('/patient/:id/brief'));
 });
 
+test('PipelineContext should track stages and format response cleanly', () => {
+  const { PipelineContext } = require('../agents/pipelineContext');
+  const ctx = new PipelineContext({ patientId: 'P001', filePath: 'test.txt' });
+  ctx.setOCR({ success: true, confidence: 0.95 });
+  ctx.setIngestion({ success: true });
+  const response = ctx.toResponse();
+
+  assert.equal(response.patient_id, 'P001');
+  assert.equal(response.success, true);
+  assert.equal(response.human_review_required, false);
+});
+
+

@@ -1,73 +1,84 @@
-const { processUploadedDocument } = require("./ocrAgent");
-const { runIngestionAgent } = require("./ingestionAgent");
-const { runAnalysisAgent } = require("./analysisAgent");
-const { runTriageAgent } = require("./triageAgent");
-const { runTransferAgent } = require("./transferAgent");
+'use strict';
 
-async function runOrchestratorAgent({
-  patientId,
-  filePath,
-  query,
-  fromDoctor,
-  toSpecialty,
-  reason,
-  apiKey,
-  model,
-}) {
-  const steps = [];
+const { processUploadedDocument } = require('./ocrAgent');
+const { runIngestionAgent } = require('./ingestionAgent');
+const { runAnalysisAgent } = require('./analysisAgent');
+const { runTriageAgent } = require('./triageAgent');
+const { runTransferAgent } = require('./transferAgent');
+const { PipelineContext } = require('./pipelineContext');
+const blockchain = require('../blockchain/logger');
 
-  if (!patientId || !filePath) {
-    return { success: false, error: "patientId and filePath are required", steps };
+async function runOrchestratorAgent(params) {
+  const context = new PipelineContext(params || {});
+
+  if (!context.patientId || !context.filePath) {
+    return { success: false, error: 'patientId and filePath are required', steps: [] };
   }
 
-  const ocr = await processUploadedDocument(filePath, apiKey, model);
-  steps.push({ step: "ocr", success: !!ocr.success, parser: ocr.parser || null, error: ocr.error || null });
+  // 1. Sequential OCR Stage
+  const ocr = await processUploadedDocument(context.filePath, context.apiKey, context.model);
+  context.setOCR(ocr);
+
   if (!ocr.success) {
-    return { success: false, stage: "ocr", ocr, steps };
+    context.flagForHumanReview(ocr.error || 'OCR document processing failed');
+    return context.toResponse();
   }
 
-  const ingestion = await runIngestionAgent(patientId, ocr.structured);
-  steps.push({ step: "ingestion", success: !!ingestion.success, error: ingestion.error || null });
+  // AI Supervisory Confidence Check
+  const ocrConfidence = ocr.confidence ?? 0.85;
+  if (ocrConfidence < 0.5) {
+    context.flagForHumanReview(`Low OCR confidence score (${(ocrConfidence * 100).toFixed(0)}%)`);
+    return context.toResponse();
+  }
+
+  // 2. Sequential Ingestion Stage
+  const ingestion = await runIngestionAgent(context.patientId, ocr.structured);
+  context.setIngestion(ingestion);
+
   if (!ingestion.success) {
-    return { success: false, stage: "ingestion", ocr, ingestion, steps };
+    context.flagForHumanReview(ingestion.error || 'Ingestion failure');
+    return context.toResponse();
   }
 
-  const analysis = await runAnalysisAgent(
-    query || "Generate physician-ready insights from latest ingested records.",
-    String(patientId),
-    apiKey,
-    model
-  );
-  steps.push({ step: "analysis", success: !String(analysis.response || "").startsWith("Error"), error: null });
+  // 3. PARALLEL EXECUTION STAGE: Run Analysis & Triage concurrently
+  const [analysis, triage] = await Promise.all([
+    runAnalysisAgent(context.query, context.patientId, context.apiKey, context.model).catch((err) => ({
+      response: `Error in analysis: ${err.message}`,
+    })),
+    runTriageAgent(context.patientId, context.apiKey).catch((err) => ({
+      agent_error: true,
+      error_message: err.message,
+      needs_consultation: true,
+    })),
+  ]);
 
-  const triage = await runTriageAgent(String(patientId), apiKey);
-  steps.push({ step: "triage", success: !triage.agent_error, error: triage.agent_error ? triage.error_message || "Triage fallback used" : null });
+  context.setAnalysis(analysis);
+  context.setTriage(triage);
 
-  let transfer = null;
-  if (triage.needs_consultation) {
-    transfer = await runTransferAgent({
-      patientId: String(patientId),
-      fromDoctor: fromDoctor || "Primary Physician",
-      toSpecialty: toSpecialty || (triage.recommended_specialties?.[0]?.department || "General Medicine & Diabetology"),
-      reason: reason || "Auto-generated from triage recommendation",
+  // 4. Conditional Transfer Stage (if triage indicates specialist consultation needed)
+  if (triage && triage.needs_consultation) {
+    const transfer = await runTransferAgent({
+      patientId: context.patientId,
+      fromDoctor: context.fromDoctor,
+      toSpecialty: context.toSpecialty || (triage.recommended_specialties?.[0]?.department || 'General Medicine & Diabetology'),
+      reason: context.reason || 'Auto-generated from triage recommendation',
       includeAnalysis: true,
-      apiKey,
-      model,
-    });
-    steps.push({ step: "transfer", success: !!transfer.success, error: transfer.error || null });
+      apiKey: context.apiKey,
+      model: context.model,
+    }).catch((err) => ({ success: false, error: err.message }));
+
+    context.setTransfer(transfer);
   }
 
-  return {
-    success: true,
-    pipeline: "OCR -> Ingestion -> Analysis -> Triage -> Transfer",
-    patient_id: String(patientId),
-    steps,
-    ocr,
-    ingestion,
-    analysis,
-    triage,
-    transfer,
-  };
+  // Cross-cutting Concern: Audit Ledger Event Logging
+  blockchain.addBlock(
+    'BALANCED_PIPELINE_EXECUTED',
+    'SYSTEM',
+    context.patientId,
+    `Pipeline executed in ${Date.now() - context.startTime}ms. Human review required: ${context.humanReviewRequired}`
+  );
+
+  return context.toResponse();
 }
 
 module.exports = { runOrchestratorAgent };
