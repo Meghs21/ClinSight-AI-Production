@@ -43,9 +43,24 @@ function verifyTokenString(token) {
 }
 
 function authenticateToken(req, res, next) {
-  // Allow public endpoints
-  const publicPaths = ['/', '/api/health', '/api/auth/login', '/api/auth/register'];
-  if (publicPaths.includes(req.path)) {
+  const currentPath = (req.path || '').toLowerCase();
+  const fullUrl = (req.originalUrl || '').toLowerCase();
+
+  // Allow public authentication & health endpoints without token
+  const isPublic =
+    currentPath === '/' ||
+    currentPath === '/health' ||
+    currentPath === '/auth/login' ||
+    currentPath === '/auth/register' ||
+    currentPath === '/login' ||
+    currentPath === '/register' ||
+    fullUrl.endsWith('/health') ||
+    fullUrl.includes('/auth/login') ||
+    fullUrl.includes('/auth/register') ||
+    fullUrl.includes('/login') ||
+    fullUrl.includes('/register');
+
+  if (isPublic) {
     return next();
   }
 
