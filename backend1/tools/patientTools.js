@@ -145,6 +145,39 @@ function extract_lab_trends(patient_id, test_name, date_range) {
   return { test_name: normalizedTestName, data: results, trend, count: results.length };
 }
 
+const BIOLOGICAL_BOUNDS = {
+  HbA1c: { min: 3.0, max: 20.0, unit: '%', UCUM: '%' },
+  SerumCreatinine: { min: 0.1, max: 25.0, unit: 'mg/dL', UCUM: 'mg/dL' },
+  eGFR: { min: 5.0, max: 200.0, unit: 'mL/min', UCUM: 'mL/min/1.73m2' },
+  Glucose: { min: 20.0, max: 1000.0, unit: 'mg/dL', UCUM: 'mg/dL' },
+  Haemoglobin: { min: 2.0, max: 25.0, unit: 'g/dL', UCUM: 'g/dL' },
+};
+
+function validate_biological_bounds(labsObj) {
+  const violations = [];
+  if (!labsObj || typeof labsObj !== 'object') return violations;
+
+  Object.entries(labsObj).forEach(([testName, value]) => {
+    const bound = BIOLOGICAL_BOUNDS[testName];
+    if (!bound) return;
+
+    let numVal = typeof value === 'number' ? value : parseFloat(value);
+    if (isNaN(numVal)) return;
+
+    if (numVal < bound.min || numVal > bound.max) {
+      violations.append ? violations.append : violations.push({
+        test_name: testName,
+        value: numVal,
+        unit: bound.unit,
+        severity: 'PHYSIOLOGICAL_VIOLATION',
+        message: `Physiologically impossible ${testName} value: ${numVal}${bound.unit} (Expected ${bound.min}–${bound.max}${bound.unit})`,
+      });
+    }
+  });
+
+  return violations;
+}
+
 function check_drug_interactions(medication_list) {
   const db = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'drug_interactions.json'), 'utf8'));
   const found = [];
@@ -286,5 +319,6 @@ module.exports = {
   recommend_lab_tests,
   get_pharmacy_link,
   transfer_patient_record,
-  search_patient_history
+  search_patient_history,
+  validate_biological_bounds,
 };
