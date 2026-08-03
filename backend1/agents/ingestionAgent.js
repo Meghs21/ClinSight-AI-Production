@@ -180,9 +180,12 @@ async function runIngestionAgent(patientId, structuredOCRData) {
       source: "OCR_INGESTION",
     });
 
-    savePatient(patientId, patient);
+    // 1. Primary Live Write Target: PostgreSQL SQL Database & pgvector Store
     await savePatientToPostgres(patientId, patient);
     await indexPatient(patient);
+
+    // 2. Secondary Local Audit Trail (File System Backup)
+    savePatient(patientId, patient);
 
     return {
       success: true,
