@@ -102,6 +102,8 @@ function fromDataset(patientId) {
   };
 }
 
+const patientRepository = require('../repositories/patientRepository');
+
 function loadPatient(patientId) {
   const file = path.join(DATA_DIR, `patient_${patientId}.json`);
   if (fs.existsSync(file)) {
