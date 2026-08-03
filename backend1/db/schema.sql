@@ -83,9 +83,21 @@ CREATE TABLE IF NOT EXISTS labs (
     lab_date DATE NOT NULL
 );
 
+-- 6. Document Embeddings Table (Native PostgreSQL pgvector Store)
+CREATE TABLE IF NOT EXISTS document_embeddings (
+    id SERIAL PRIMARY KEY,
+    patient_id VARCHAR(50) REFERENCES patients(patient_id) ON DELETE CASCADE,
+    section VARCHAR(50),
+    doc_date VARCHAR(50),
+    content TEXT NOT NULL,
+    embedding vector(1536),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indices for rapid lookup
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_audit_patient_id ON audit_logs(patient_id);
 CREATE INDEX IF NOT EXISTS idx_visits_patient_id ON visits(patient_id);
 CREATE INDEX IF NOT EXISTS idx_labs_patient_id ON labs(patient_id);
 CREATE INDEX IF NOT EXISTS idx_meds_patient_id ON medications(patient_id);
+CREATE INDEX IF NOT EXISTS idx_embeddings_patient_id ON document_embeddings(patient_id);
