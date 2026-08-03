@@ -150,7 +150,9 @@ class PatientRepository {
             name: m.drug,
             dose: m.dose || '',
             frequency: m.frequency || '',
-            prescribedBy: m.prescribed_by || '',
+            since: m.start_date || null,
+            indication: m.indication || '',
+            caution: m.caution || '',
             active: m.active !== false,
           }));
 
