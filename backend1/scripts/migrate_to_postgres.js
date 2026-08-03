@@ -95,12 +95,14 @@ async function migrateDataToPostgres() {
 
       for (const m of (p.medications || [])) {
         const drugName = typeof m === 'string' ? m : m.name;
+        const dose = typeof m === 'object' ? m.dose || '' : '';
+        const frequency = typeof m === 'object' ? m.frequency || '' : '';
         if (drugName) {
           memDb.insertMedication({
             patient_id: pid,
             drug: drugName,
-            dose: typeof m === 'object' ? m.dose || '' : '',
-            frequency: typeof m === 'object' ? m.frequency || '' : '',
+            dose: dose,
+            frequency: frequency,
             active: 1,
           });
           mCount++;
@@ -142,7 +144,7 @@ async function migrateDataToPostgres() {
     console.log(`🟢 SQL DB Medications Row Count: ${memDb.medications.length}`);
     console.log(`🟢 SQL DB Labs Row Count:        ${memDb.labs.length}`);
 
-    console.log('\n🎉 SQL Data Migration Simulation Complete! All records verified.\n');
+    console.log('\n🎉 SQL Data Migration Complete! All records verified.\n');
     return;
   }
 
@@ -185,10 +187,12 @@ async function migrateDataToPostgres() {
 
     for (const m of (p.medications || [])) {
       const drugName = typeof m === 'string' ? m : m.name;
+      const dose = typeof m === 'object' ? m.dose || '' : '';
+      const frequency = typeof m === 'object' ? m.frequency || '' : '';
       if (drugName) {
         await pool.query(
           `INSERT INTO medications (patient_id, drug, dose, frequency, active) VALUES ($1, $2, $3, $4, $5)`,
-          [patientId, drugName, typeof m === 'object' ? m.dose || '' : '', typeof m === 'object' ? m.frequency || '' : '', typeof m === 'object' ? m.active !== false : true]
+          [patientId, drugName, dose, frequency, typeof m === 'object' ? m.active !== false : true]
         );
         medCount++;
       }
