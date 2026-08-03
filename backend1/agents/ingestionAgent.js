@@ -20,6 +20,61 @@ function savePatient(patientId, data) {
   fs.writeFileSync(patientFile(patientId), JSON.stringify(data, null, 2));
 }
 
+async function savePatientToPostgres(patientId, patient) {
+  if (!process.env.DATABASE_URL) return;
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const now = new Date().toISOString().slice(0, 10);
+
+    // 1. Upsert Patient
+    await pool.query(
+      `INSERT INTO patients (patient_id, name, email, age, gender, status)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (patient_id) DO UPDATE SET
+         name = EXCLUDED.name,
+         status = EXCLUDED.status`,
+      [patientId, patient.name || 'Unknown', `${patientId.toLowerCase()}@patient.local`, patient.age || 45, patient.gender || 'Unknown', patient.status || 'stable']
+    );
+
+    // 2. Insert Visits
+    if (patient.visits?.length) {
+      const v = patient.visits[patient.visits.length - 1];
+      await pool.query(
+        `INSERT INTO visits (patient_id, visit_date, doctor, department, chief_complaint, clinical_note, plan)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [patientId, v.date || now, v.doctor || 'OCR Import', v.department || 'Medical Records', v.chiefComplaint || '', v.clinicalNote || '', v.plan || '']
+      );
+    }
+
+    // 3. Insert Medications
+    for (const m of (patient.medications || [])) {
+      const name = typeof m === 'string' ? m : m.name;
+      if (name) {
+        await pool.query(
+          `INSERT INTO medications (patient_id, drug, active) VALUES ($1, $2, $3)`,
+          [patientId, name, true]
+        );
+      }
+    }
+
+    // 4. Insert Labs
+    for (const [testName, entries] of Object.entries(patient.labResults || {})) {
+      if (Array.isArray(entries) && entries.length) {
+        const lastEntry = entries[entries.length - 1];
+        await pool.query(
+          `INSERT INTO labs (patient_id, test_name, value, unit, status, lab_date) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [patientId, testName, String(lastEntry.value || ''), lastEntry.unit || '', 'NORMAL', lastEntry.date || now]
+        );
+      }
+    }
+
+    await pool.end();
+  } catch (err) {
+    console.warn('Postgres SQL upsert warning during ingestion:', err.message);
+  }
+}
+
 function toArray(value) {
   if (!value) return [];
   return Array.isArray(value) ? value : [value];
@@ -126,6 +181,7 @@ async function runIngestionAgent(patientId, structuredOCRData) {
     });
 
     savePatient(patientId, patient);
+    await savePatientToPostgres(patientId, patient);
     await indexPatient(patient);
 
     return {

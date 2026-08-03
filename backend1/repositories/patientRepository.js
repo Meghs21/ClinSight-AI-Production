@@ -111,16 +111,67 @@ class PatientRepository {
           const visitsRes = await pgPool.query('SELECT * FROM visits WHERE patient_id = $1 ORDER BY visit_date DESC', [id]);
           const medsRes = await pgPool.query('SELECT * FROM medications WHERE patient_id = $1', [id]);
           const labsRes = await pgPool.query('SELECT * FROM labs WHERE patient_id = $1 ORDER BY lab_date DESC', [id]);
+
+          // Reconstruct labResults object grouped by test_name
+          const labResultsObj = {};
+          (labsRes.rows || []).forEach((l) => {
+            const tName = l.test_name;
+            if (!labResultsObj[tName]) labResultsObj[tName] = [];
+            let val = l.value;
+            try {
+              if (typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
+                val = JSON.parse(val);
+              } else if (!isNaN(Number(val))) {
+                val = Number(val);
+              }
+            } catch {}
+
+            labResultsObj[tName].push({
+              date: l.lab_date ? new Date(l.lab_date).toISOString().slice(0, 10) : '',
+              value: val,
+              unit: l.unit || '',
+              status: l.status || 'NORMAL',
+              normalRange: l.normal_range || '',
+            });
+          });
+
+          // Reconstruct visits array
+          const visitsArr = (visitsRes.rows || []).map((v) => ({
+            date: v.visit_date ? new Date(v.visit_date).toISOString().slice(0, 10) : '',
+            doctor: v.doctor || 'Attending Physician',
+            department: v.department || 'General Medicine',
+            chiefComplaint: v.chief_complaint || '',
+            clinicalNote: v.clinical_note || '',
+            plan: v.plan || '',
+          }));
+
+          // Reconstruct medications array
+          const medsArr = (medsRes.rows || []).map((m) => ({
+            name: m.drug,
+            dose: m.dose || '',
+            frequency: m.frequency || '',
+            prescribedBy: m.prescribed_by || '',
+            active: m.active !== false,
+          }));
+
           return {
             id: p.patient_id,
+            patient_id: p.patient_id,
             name: p.name,
+            email: p.email || '',
             age: p.age,
             gender: p.gender,
-            diagnoses: p.diagnosis || [],
-            allergies: p.allergies || [],
-            visits: visitsRes.rows || [],
-            medications: medsRes.rows || [],
-            labs: labsRes.rows || [],
+            bloodGroup: p.blood_group || 'O+',
+            city: p.city || 'Chennai',
+            status: p.status || 'stable',
+            primaryDiagnosis: Array.isArray(p.diagnosis) ? p.diagnosis : [p.diagnosis].filter(Boolean),
+            secondaryDiagnosis: [],
+            allergies: Array.isArray(p.allergies) ? p.allergies : [p.allergies].filter(Boolean),
+            medications: medsArr,
+            labResults: labResultsObj,
+            visits: visitsArr,
+            clinicalFlags: [],
+            overdueTests: [],
           };
         }
       } catch (err) {
