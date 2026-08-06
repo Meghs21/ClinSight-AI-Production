@@ -1,0 +1,8 @@
+Patient Name: Rajan Subramaniam
+Dose: 10mg, Frequency: 1 tab po qd
+Dose: 10mg, Frequency: 1 tab po qd
+Dose: 10mg, Frequency: 1 tab po qd
+Medication: Amlodipine, Dose: 5mg, Frequency: 1 tab po qd
+Medication: Amlodipine, Dose: 5mg, Frequency: 1 tab po qd
+HbA1c: 9.4%
+Serum Creatinine: 2.1 mg/dL
