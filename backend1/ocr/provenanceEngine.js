@@ -93,13 +93,12 @@ function wrapDocumentPayloadWithProvenance(structuredData, ocrMeta = {}) {
 
   // Guardrail: Detect LLM commentary leaks or excessive length
   const COMMENTARY_PATTERNS = [
-    /your correction/i,
-    /is a good practice/i,
-    /it would be a good idea/i,
-    /clean medical text/i,
-    /transcription/i,
-    /as an AI/i,
-    /note that/i,
+    /your correction(s)? (is|are) accurate/i,
+    /is a good practice in medical/i,
+    /it would be a good idea to/i,
+    /as an AI( language model)?/i,
+    /clean (medical )?text (provided|is)/i,
+    /here is the (clean|corrected|extracted)/i,
   ];
 
   function detectCommentary(val, maxLength = 150) {
