@@ -187,7 +187,9 @@ const INDIAN_BRAND_DICTIONARY = {
   'wysolone': 'Prednisolone 5mg',
   'rablet': 'Rabeprazole 20mg',
   'rablet-d': 'Rabeprazole + Domperidone',
+  'rabletd': 'Rabeprazole + Domperidone',
   'd-logy': 'Cholecalciferol / Vitamin D3',
+  'dlogy': 'Cholecalciferol / Vitamin D3',
   'augmentin': 'Amoxicillin + Clavulanate',
   'ecosprin': 'Aspirin 75mg',
   'glycomet': 'Metformin 500mg',
@@ -198,15 +200,18 @@ const INDIAN_BRAND_DICTIONARY = {
 async function validate_drug_with_nih_rxnorm(drugName) {
   try {
     const raw = String(drugName).trim();
-    const cleanName = raw.split(/\s+/)[0].replace(/[^a-zA-Z]/g, '').toLowerCase();
+    const firstWord = raw.split(/\s+/)[0].toLowerCase();
+    const cleanName = firstWord.replace(/[^a-zA-Z0-9\-]/g, '');
+    const alphaOnly = firstWord.replace(/[^a-zA-Z]/g, '');
 
     // Check regional brand dictionary first
-    if (INDIAN_BRAND_DICTIONARY[cleanName]) {
+    const brandMatch = INDIAN_BRAND_DICTIONARY[cleanName] || INDIAN_BRAND_DICTIONARY[alphaOnly];
+    if (brandMatch) {
       return {
         verified: true,
         drug: drugName,
-        genericName: INDIAN_BRAND_DICTIONARY[cleanName],
-        rxcui: 'BRAND_MATCH_' + cleanName.toUpperCase(),
+        genericName: brandMatch,
+        rxcui: 'BRAND_MATCH_' + alphaOnly.toUpperCase(),
         source: 'Regional_Brand_Dictionary',
       };
     }
