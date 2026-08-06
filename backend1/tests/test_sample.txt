@@ -1,0 +1,4 @@
+Patient: Rajan Subramaniam
+HbA1c: 9.4%
+Serum Creatinine: 2.1 mg/dL
+Metformin 1000mg
