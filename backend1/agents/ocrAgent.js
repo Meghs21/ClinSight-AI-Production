@@ -6,7 +6,7 @@ const { getOCRProvider, GeminiVisionProvider, TesseractProvider } = require("../
 const { isDigitalNativePDF, extractDigitalPDFText } = require("../ocr/pdfRouter");
 const { detectHandwriting } = require("../ocr/handwritingDetector");
 const { wrapDocumentPayloadWithProvenance } = require("../ocr/provenanceEngine");
-const { validate_biological_bounds } = require("../tools/patientTools");
+const { validate_biological_bounds, validate_drug_with_nih_rxnorm } = require("../tools/patientTools");
 const llmGateway = require("../services/llmGateway");
 
 // 1. File Validation
@@ -52,6 +52,15 @@ function heuristicExtract(rawText) {
     }
   }
 
+  // Diagnosis extraction for SLE, Scleroderma, Lupus, etc.
+  const diagnoses = [];
+  const sleMatch = compact.match(/(SLE(?:\s+with\s+Scleroderma)?|Scleroderma|Lupus|Systemic\s+Lupus|Diabetes|Nephropathy|Sinusitis|Hypertension|Arthritis)/i);
+  const diagMatch = compact.match(/(?:Diagnosis|Diag|Impression|Condition)\s*[:\-]?\s*([^\n\r]+)/i);
+
+  if (sleMatch) diagnoses.push(sleMatch[1].trim());
+  if (diagMatch && diagMatch[1]) diagnoses.push(diagMatch[1].trim());
+  const uniqueDiag = [...new Set(diagnoses)].filter(Boolean);
+
   const bpMatch = compact.match(/(?:BP|Blood\s*Pressure)\s*[:\-]?\s*(\d{2,3})\s*\/\s*(\d{2,3})/i);
   const hba1cMatch = compact.match(/HbA1c\s*[:\-]?\s*([0-9]+(?:\.[0-9]+)?)/i);
   const crMatch = compact.match(/(?:Creatinine|Serum\s*Creatinine)\s*[:\-]?\s*([0-9]+(?:\.[0-9]+)?)/i);
@@ -64,7 +73,7 @@ function heuristicExtract(rawText) {
     patient_name: null,
     symptoms: [],
     medications: uniqueMeds.slice(0, 20),
-    diagnosis: [],
+    diagnosis: uniqueDiag,
     allergies: [],
     tests_recommended: [],
     clinical_summary: lines.slice(0, 12).join(" "),
@@ -188,11 +197,28 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
       return String(d).trim();
     }))].filter(Boolean);
 
-    // Stage 6: Validation (Biological Bounds Checking)
+    // Stage 6: Validation (Biological Bounds Checking & RxNorm Hallucination Checking)
     const rangeViolations = validate_biological_bounds(structured.lab_results || {});
+
+    let hasUnrecognizedDrug = false;
+    const drugValidationResults = [];
+
+    for (const medStr of structured.medications || []) {
+      const rxRes = await validate_drug_with_nih_rxnorm(medStr);
+      drugValidationResults.push(rxRes);
+      if (!rxRes.verified) {
+        hasUnrecognizedDrug = true;
+        console.warn(`⚠️ [RxNorm HALLUCINATION GUARDRAIL]: ${rxRes.error}`);
+      }
+    }
 
     // Stage 7: Wrap Payload with Field Provenance & Versioning Tags
     const wrapped = wrapDocumentPayloadWithProvenance(structured, ocrMeta);
+
+    if (hasUnrecognizedDrug) {
+      wrapped.confidence_summary.medication_confidence = 40;
+      wrapped.confidence_summary.overall_confidence = 40;
+    }
 
     return {
       success: true,
@@ -204,8 +230,10 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
       versions: wrapped.versions,
       confidence_summary: wrapped.confidence_summary,
       validation_violations: rangeViolations,
-      parser: ocrMeta.provider,
-      requires_human_review: rangeViolations.length > 0 || ocrMeta.confidence < 0.85,
+      parser: ocrMeta?.provider || "TesseractOCR",
+      requires_human_review: rangeViolations.length > 0 || (ocrMeta?.confidence || 0.95) < 0.85 || hasUnrecognizedDrug,
+      drug_validation: drugValidationResults,
+      unrecognized_drug_detected: hasUnrecognizedDrug,
     };
   } catch (error) {
     return {
