@@ -45,8 +45,9 @@ function heuristicExtract(rawText) {
   const lines = compact.split("\n").map((l) => l.trim()).filter(Boolean);
 
   const meds = [];
+  const isLabLine = (line) => /(mg\/dl|g\/dl|mmol\/l|creatinine|hba1c|egfr|haemoglobin|hemoglobin|blood\s*pressure)/i.test(line);
   for (const line of lines) {
-    if (/(tablet|tab|capsule|cap|mg|ml|once|twice|daily|bd|od|hs)/i.test(line)) {
+    if (!isLabLine(line) && /(rx|tablet|tab\b|capsule|cap\b|syrup|inj\b|\bmg\b|\bml\b|once|twice|daily|bd|od|hs|po|qd)/i.test(line)) {
       meds.push(line);
     }
   }
