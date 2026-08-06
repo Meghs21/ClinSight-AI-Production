@@ -17,6 +17,24 @@ if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const upload = multer({ dest: UPLOAD_DIR });
 
+// Custom Multer Middleware Wrapper to handle any field name safely and return JSON errors
+function handleFileUpload(req, res, next) {
+  const uploadHandler = upload.any();
+  uploadHandler(req, res, (err) => {
+    if (err) {
+      console.warn('Multer upload warning:', err.message);
+      if (err instanceof multer.MulterError) {
+        return res.status(400).json({ error: `File Upload Error: ${err.message}` });
+      }
+      return res.status(500).json({ error: err.message });
+    }
+    if (req.files && req.files.length > 0) {
+      req.file = req.files[0];
+    }
+    next();
+  });
+}
+
 // ─── AUTH ROUTES ────────────────────────────────────────────────────────────
 router.post('/auth/login', authController.login);
 router.post('/auth/register', authController.register);
@@ -48,12 +66,7 @@ router.post('/rag/query', agentController.runRagDoctor);
 router.post('/voice', agentController.runVoice);
 
 // ─── DOCUMENT & INGESTION ROUTES ─────────────────────────────────────────────
-router.post('/upload', upload.any(), (req, res, next) => {
-  if (req.files && req.files.length > 0) {
-    req.file = req.files[0];
-  }
-  next();
-}, documentController.uploadDocument);
+router.post('/upload', handleFileUpload, documentController.uploadDocument);
 router.post('/ingest', documentController.ingestDocument);
 
 // ─── BLOCKCHAIN / AUDIT ROUTES ──────────────────────────────────────────────
