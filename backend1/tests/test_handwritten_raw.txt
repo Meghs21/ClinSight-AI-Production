@@ -1,0 +1,3 @@
+Patient: Armando Cegria
+Rx: 39 cap 3x a day x 7 days
+Diagnosis: Sinusitis

@@ -167,10 +167,13 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
     structured.medications = [...new Set(rawMeds.map((m) => {
       if (typeof m === 'object' && m !== null) {
         const name = m.name || m.medication || m.drug || '';
-        const dose = m.dose || m.dosage || '';
-        const freq = m.frequency || m.sig || m.route || '';
-        const dur = m.duration ? `x ${m.duration}` : '';
-        return `${name} ${dose} ${freq} ${dur}`.trim() || JSON.stringify(m);
+        let dose = m.dose || m.dosage || '';
+        if (typeof dose === 'object' && dose !== null) {
+          dose = `${dose.strength || ''} ${dose.form || ''} ${dose.frequency || ''} ${dose.duration ? 'x ' + dose.duration : ''}`.trim();
+        }
+        const freq = typeof m.frequency === 'string' ? m.frequency : (m.sig || m.route || '');
+        const dur = typeof m.duration === 'string' ? `x ${m.duration}` : '';
+        return `${name} ${dose} ${freq} ${dur}`.replace(/\s+/g, ' ').trim() || JSON.stringify(m);
       }
       return String(m).trim();
     }))].filter(Boolean);
