@@ -58,10 +58,12 @@ function heuristicExtract(rawText) {
   const egfrMatch = compact.match(/eGFR\s*[:\-]?\s*([0-9]+(?:\.[0-9]+)?)/i);
   const hbMatch = compact.match(/(?:Haemoglobin|Hemoglobin|Hb)\s*[:\-]?\s*([0-9]+(?:\.[0-9]+)?)/i);
 
+  const uniqueMeds = [...new Set(meds.map((m) => m.trim()))].filter(Boolean);
+
   return {
     patient_name: null,
     symptoms: [],
-    medications: meds.slice(0, 20),
+    medications: uniqueMeds.slice(0, 20),
     diagnosis: [],
     allergies: [],
     tests_recommended: [],
@@ -144,13 +146,34 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
           lab_results: { HbA1c: "number", SerumCreatinine: "number" }
         }
       });
-      if (llmRes.json) structured = llmRes.json;
+      if (llmRes.data) structured = llmRes.data;
     } catch {
       structured = null;
     }
 
     if (!structured) {
       structured = heuristicExtract(rawText);
+    } else {
+      // Deduplicate and format arrays if LLM returned duplicates or objects
+      if (Array.isArray(structured.medications)) {
+        structured.medications = [...new Set(structured.medications.map((m) => {
+          if (typeof m === 'object' && m !== null) {
+            const name = m.name || m.medication || m.drug || '';
+            const dose = m.dose || m.dosage || '';
+            const freq = m.frequency || m.sig || '';
+            return `${name} ${dose} ${freq}`.trim() || JSON.stringify(m);
+          }
+          return String(m).trim();
+        }))].filter(Boolean);
+      }
+      if (Array.isArray(structured.diagnosis)) {
+        structured.diagnosis = [...new Set(structured.diagnosis.map((d) => {
+          if (typeof d === 'object' && d !== null) {
+            return d.name || d.diagnosis || JSON.stringify(d);
+          }
+          return String(d).trim();
+        }))].filter(Boolean);
+      }
     }
 
     // Stage 6: Validation (Biological Bounds Checking)
