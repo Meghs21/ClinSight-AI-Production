@@ -51,14 +51,14 @@ class GroqLLMProvider extends OCRProvider {
           messages: [
             {
               role: 'system',
-              content: 'You are a precise clinical transcript extractor. Return ONLY clean transcribed text. Do NOT include any commentary, explanations, greetings, or feedback about the correction process.',
+              content: 'You are an expert clinical transcript reader and medical normalizer. Correct OCR typos in handwritten doctor prescriptions (e.g. "39 cap" -> "Cap. Amoxicillin 500mg", "3x a day" -> "TID / 3 times daily", "HCO 20prag" -> "Tab. HCQS 200mg"). Return ONLY clean medical prescription text without any commentary or greetings.',
             },
             {
               role: 'user',
-              content: `Here is raw OCR text from a medical prescription/lab sheet:
+              content: `Raw handwritten OCR transcript:
               ${tessRes.text}
 
-              CRITICAL INSTRUCTION: Return ONLY the corrected clinical text. Do NOT add phrases like "Here is the clean text", "Your corrections are accurate", "is a good practice", or any explanations. If no text is found, return empty string.`,
+              Correct OCR typos, infer missing drug letters, and output the clean medical prescription text (Medication Name, Dose, Frequency). Return ONLY the clean medical text.`,
             },
           ],
           temperature: 0.0,
