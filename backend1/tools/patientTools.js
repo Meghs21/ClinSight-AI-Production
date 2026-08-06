@@ -180,9 +180,37 @@ function validate_biological_bounds(labsObj) {
   return violations;
 }
 
+const INDIAN_BRAND_DICTIONARY = {
+  'hcqs': 'Hydroxychloroquine 200mg',
+  'folitrax': 'Methotrexate 15mg',
+  'folvite': 'Folic Acid 5mg',
+  'wysolone': 'Prednisolone 5mg',
+  'rablet': 'Rabeprazole 20mg',
+  'rablet-d': 'Rabeprazole + Domperidone',
+  'd-logy': 'Cholecalciferol / Vitamin D3',
+  'augmentin': 'Amoxicillin + Clavulanate',
+  'ecosprin': 'Aspirin 75mg',
+  'glycomet': 'Metformin 500mg',
+  'metolar': 'Metoprolol 25mg',
+  'febutaz': 'Febuxostat 40mg',
+};
+
 async function validate_drug_with_nih_rxnorm(drugName) {
   try {
-    const cleanName = String(drugName).split(/\s+/)[0].replace(/[^a-zA-Z]/g, '');
+    const raw = String(drugName).trim();
+    const cleanName = raw.split(/\s+/)[0].replace(/[^a-zA-Z]/g, '').toLowerCase();
+
+    // Check regional brand dictionary first
+    if (INDIAN_BRAND_DICTIONARY[cleanName]) {
+      return {
+        verified: true,
+        drug: drugName,
+        genericName: INDIAN_BRAND_DICTIONARY[cleanName],
+        rxcui: 'BRAND_MATCH_' + cleanName.toUpperCase(),
+        source: 'Regional_Brand_Dictionary',
+      };
+    }
+
     const url = `https://rxnav.nlm.nih.gov/REST/rxcui.json?name=${encodeURIComponent(cleanName)}`;
     const res = await fetch(url);
     const data = await res.json();
@@ -190,7 +218,7 @@ async function validate_drug_with_nih_rxnorm(drugName) {
     if (rxcui) {
       return { verified: true, drug: drugName, rxcui, source: 'NIH_NLM_RxNorm_API' };
     }
-    return { verified: false, drug: drugName, source: 'NIH_NLM_RxNorm_API' };
+    return { verified: false, drug: drugName, error: `Unrecognized medication name: ${drugName} — possible AI/OCR hallucination`, source: 'NIH_NLM_RxNorm_API' };
   } catch (err) {
     return { verified: false, drug: drugName, error: err.message };
   }

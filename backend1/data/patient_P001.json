@@ -10,7 +10,8 @@
   "registeredAt": "Kathir Memorial Hospital",
   "primaryDiagnosis": [
     "Type 2 Diabetes Mellitus (E11)",
-    "Hypertension (I10)"
+    "Hypertension (I10)",
+    "None specified"
   ],
   "secondaryDiagnosis": [
     "Early Diabetic Nephropathy (N08)"
@@ -78,6 +79,9 @@
     },
     {
       "name": "and schedule a follow-up office visit in 3 months for re-evaluation"
+    },
+    {
+      "name": "Amoxicillin 500mg Cap TID"
     }
   ],
   "labResults": {
@@ -339,6 +343,15 @@
       "clinicalNote": "Validated extraction: . Meds: Lipitor 20mg PO QD, months for, Atorvastatin (Lipitor) 20mg PO QD for hyperlipidemia, Plan: Continue current medication, monitor labs, and follow up in 3 months for re-evaluation, Atorvastatin (Lipitor) 20mg PO QD for hyperlipidemia, Plan: Continue current medication, monitor labs, and follow up in 3 months for re-evaluation, Your corrections are accurate and the clean medical text provided is clear and concise. The addition of the generic name \"Atorvastatin\" for the medication \"Lipitor\" is a good practice in medical transcription., 3. It would be a good idea to specify the type of follow-up appointment (e.g., office visit, phone call, etc.) in the plan section., Atorvastatin (Lipitor) 20 mg PO QD for hyperlipidemia, Plan: Continue current medication, monitor labs, and schedule a follow-up office visit in 3 months for re-evaluation",
       "plan": "",
       "source": "OCR_INGESTION"
+    },
+    {
+      "date": "2026-08-06",
+      "doctor": "OCR Import",
+      "department": "Medical Records",
+      "chiefComplaint": "None specified",
+      "clinicalNote": "Validated extraction: None specified. Meds: Amoxicillin 500mg Cap TID",
+      "plan": "",
+      "source": "OCR_INGESTION"
     }
   ],
   "clinicalFlags": [
@@ -375,6 +388,12 @@
     {
       "type": "HIGH",
       "flag": "Reported symptom: ",
+      "evidence": "Imported from OCR document",
+      "recommendation": "Physician review advised"
+    },
+    {
+      "type": "HIGH",
+      "flag": "Reported symptom: None specified",
       "evidence": "Imported from OCR document",
       "recommendation": "Physician review advised"
     }
