@@ -1,5 +1,3 @@
-import { redirect } from "next/navigation";
+import DoctorDashboard from "../(dashboard)/page";
 
-export default function DashboardRedirectPage() {
-  redirect("/");
-}
+export default DoctorDashboard;
