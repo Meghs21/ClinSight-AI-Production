@@ -12,7 +12,7 @@ const syne = Syne({ subsets: ["latin"], weight: ["600", "700"] });
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || "http://localhost:4000";
 
-type Role = "doctor" | "admin";
+type Role = "doctor" | "patient" | "admin";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -29,11 +29,12 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const hasAuthCookie = document.cookie.includes("medai_auth=1");
-    if (hasAuthCookie) {
-      router.replace("/dashboard");
+    const urlParams = new URLSearchParams(window.location.search);
+    const roleParam = urlParams.get("role") as Role;
+    if (roleParam && ["doctor", "patient", "admin"].includes(roleParam)) {
+      setRole(roleParam);
     }
-  }, [router]);
+  }, []);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -70,7 +71,12 @@ export default function RegisterPage() {
       localStorage.setItem("medai_user", JSON.stringify(data.user));
       localStorage.setItem("medai_role", role);
       document.cookie = "medai_auth=1; path=/; max-age=2592000; samesite=lax";
-      router.push("/dashboard");
+      
+      if (role === "patient") {
+        router.push("/patient-portal");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
       setShake(true);
@@ -112,18 +118,18 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl p-1" style={{ background: "#061020", border: "1px solid #1a2d4a" }}>
-            {(["doctor", "admin"] as Role[]).map((r) => {
+          <div className="mb-6 grid grid-cols-3 gap-2 rounded-xl p-1" style={{ background: "#061020", border: "1px solid #1a2d4a" }}>
+            {(["doctor", "patient", "admin"] as Role[]).map((r) => {
               const selected = role === r;
               return (
                 <button
                   key={r}
                   type="button"
                   onClick={() => setRole(r)}
-                  className="rounded-lg px-3 py-2 text-sm font-medium transition-all"
+                  className="rounded-lg px-3 py-2 text-sm font-medium capitalize transition-all"
                   style={selected ? { background: "linear-gradient(135deg,#00b4d8,#0077b6)", color: "#e2e8f0", boxShadow: "0 0 16px rgba(0,180,216,0.35)" } : { color: "#4a6fa5" }}
                 >
-                  {r === "doctor" ? "Doctor" : "Admin"}
+                  {r === "doctor" ? "👨‍⚕️ Doctor" : r === "patient" ? "👤 Patient" : "⚙️ Admin"}
                 </button>
               );
             })}

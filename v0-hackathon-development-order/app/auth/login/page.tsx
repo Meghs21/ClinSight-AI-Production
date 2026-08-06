@@ -383,8 +383,12 @@ export default function DoctorLoginPage() {
               All systems operational
             </div>
 
-            <h1 className="lr-title">Welcome back,<br />Doctor.</h1>
-            <p className="lr-sub">Sign in to access your patient dashboard and clinical insights.</p>
+            <h1 className="lr-title">Welcome back,<br />{role === "doctor" ? "Doctor." : "Patient."}</h1>
+            <p className="lr-sub">
+              {role === "doctor"
+                ? "Sign in to access your patient dashboard and clinical insights."
+                : "Sign in to access your health portal, lab reports, and AI assistant."}
+            </p>
 
             <form onSubmit={onSubmit}>
               {/* Role Selector Toggle */}
@@ -440,7 +444,7 @@ export default function DoctorLoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     onFocus={() => setFocused("email")}
                     onBlur={() => setFocused(null)}
-                    placeholder="dr.verma@hospital.com" />
+                    placeholder={role === "doctor" ? "nandakumar@kathir.in" : "rajan@patient.in"} />
                 </div>
               </div>
 
@@ -473,7 +477,7 @@ export default function DoctorLoginPage() {
             </form>
 
             <div className="lr-sep"><span>New to MedAI Pro?</span></div>
-            <Link href="/auth/register" className="lr-reg">Create a doctor account</Link>
+            <Link href={`/register?role=${role}`} className="lr-reg">Create a {role} account</Link>
 
             <div className="lr-footer">
               <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#e2e8f0", display: "inline-block", flexShrink: 0 }} />
