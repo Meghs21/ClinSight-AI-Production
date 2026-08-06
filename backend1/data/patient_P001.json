@@ -39,6 +39,45 @@
     },
     {
       "name": "- Metformin 1000mg"
+    },
+    {
+      "name": "Lipitor 20mg PO QD"
+    },
+    {
+      "name": "months for"
+    },
+    {
+      "name": "Atorvastatin (Lipitor) 20mg PO QD for hyperlipidemia"
+    },
+    {
+      "name": "Plan: Continue current medication"
+    },
+    {
+      "name": "monitor labs"
+    },
+    {
+      "name": "and follow up in 3 months for re-evaluation"
+    },
+    {
+      "name": "Your corrections are accurate and the clean medical text provided is clear and concise. The addition of the generic name \"Atorvastatin\" for the medication \"Lipitor\" is a good practice in medical transcription."
+    },
+    {
+      "name": "3. It would be a good idea to specify the type of follow-up appointment (e.g."
+    },
+    {
+      "name": "office visit"
+    },
+    {
+      "name": "phone call"
+    },
+    {
+      "name": "etc.) in the plan section."
+    },
+    {
+      "name": "Atorvastatin (Lipitor) 20 mg PO QD for hyperlipidemia"
+    },
+    {
+      "name": "and schedule a follow-up office visit in 3 months for re-evaluation"
     }
   ],
   "labResults": {
@@ -96,6 +135,11 @@
         "date": "2026-08-06",
         "value": 9.4,
         "source": "OCR_INGESTION"
+      },
+      {
+        "date": "2026-08-06",
+        "value": 9.4,
+        "source": "OCR_INGESTION"
       }
     ],
     "SerumCreatinine": [
@@ -133,6 +177,11 @@
         "unit": "mg/dL",
         "referenceRange": "0.7-1.2",
         "status": "critical"
+      },
+      {
+        "date": "2026-08-06",
+        "value": 2.1,
+        "source": "OCR_INGESTION"
       },
       {
         "date": "2026-08-06",
@@ -281,6 +330,15 @@
       "clinicalNote": "After reviewing the raw OCR text, I have corrected any potential typos and formatted the text for clarity. Here is the clean transcribed medical prescription text: Patient: Rajan Subramaniam HbA1c: 9.4% Serum Creatinine: 2.1 mg/dL Metformin 1000mg No OCR typos were detected in the provided text. However, I can suggest a more formal and standardized way to present the prescription: Patient: Rajan Subramaniam Laboratory Results: - HbA1c: 9.4% - Serum Creatinine: 2.1 mg/dL Medication: - Metformin 1000mg",
       "plan": "",
       "source": "OCR_INGESTION"
+    },
+    {
+      "date": "2026-08-06",
+      "doctor": "OCR Import",
+      "department": "Medical Records",
+      "chiefComplaint": "Document ingestion",
+      "clinicalNote": "Validated extraction: . Meds: Lipitor 20mg PO QD, months for, Atorvastatin (Lipitor) 20mg PO QD for hyperlipidemia, Plan: Continue current medication, monitor labs, and follow up in 3 months for re-evaluation, Atorvastatin (Lipitor) 20mg PO QD for hyperlipidemia, Plan: Continue current medication, monitor labs, and follow up in 3 months for re-evaluation, Your corrections are accurate and the clean medical text provided is clear and concise. The addition of the generic name \"Atorvastatin\" for the medication \"Lipitor\" is a good practice in medical transcription., 3. It would be a good idea to specify the type of follow-up appointment (e.g., office visit, phone call, etc.) in the plan section., Atorvastatin (Lipitor) 20 mg PO QD for hyperlipidemia, Plan: Continue current medication, monitor labs, and schedule a follow-up office visit in 3 months for re-evaluation",
+      "plan": "",
+      "source": "OCR_INGESTION"
     }
   ],
   "clinicalFlags": [
@@ -313,6 +371,12 @@
       "flag": "Beta-lactam antibiotic caution",
       "evidence": "Amoxicillin rash documented Oct 2025 visit (incident 2019)",
       "recommendation": "Avoid penicillin-class antibiotics — for physician review"
+    },
+    {
+      "type": "HIGH",
+      "flag": "Reported symptom: ",
+      "evidence": "Imported from OCR document",
+      "recommendation": "Physician review advised"
     }
   ],
   "overdueTests": [
