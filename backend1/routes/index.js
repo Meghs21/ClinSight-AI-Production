@@ -48,7 +48,12 @@ router.post('/rag/query', agentController.runRagDoctor);
 router.post('/voice', agentController.runVoice);
 
 // ─── DOCUMENT & INGESTION ROUTES ─────────────────────────────────────────────
-router.post('/upload', upload.single('document'), documentController.uploadDocument);
+router.post('/upload', upload.any(), (req, res, next) => {
+  if (req.files && req.files.length > 0) {
+    req.file = req.files[0];
+  }
+  next();
+}, documentController.uploadDocument);
 router.post('/ingest', documentController.ingestDocument);
 
 // ─── BLOCKCHAIN / AUDIT ROUTES ──────────────────────────────────────────────

@@ -118,6 +118,7 @@ export default function PatientPortalPage() {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("document", file);
       formData.append("patientId", patientId);
       formData.append("autoIngest", "false"); // Do not auto-commit, allow review first
 
