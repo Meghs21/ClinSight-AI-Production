@@ -51,14 +51,14 @@ class GroqLLMProvider extends OCRProvider {
           messages: [
             {
               role: 'system',
-              content: 'You are an expert clinical transcript reader and medical normalizer. Correct OCR typos in handwritten doctor prescriptions (e.g. "39 cap" -> "Cap. Amoxicillin 500mg", "3x a day" -> "TID / 3 times daily", "HCO 20prag" -> "Tab. HCQS 200mg"). Return ONLY clean medical prescription text without any commentary or greetings.',
+              content: 'You are a literal clinical transcript reader. Transcribe medical text EXACTLY as written. Do NOT expand brand names, do NOT guess unwritten generic drug names, and do NOT alter drug names. Output ONLY the exact transcribed medical text without commentary.',
             },
             {
               role: 'user',
-              content: `Raw handwritten OCR transcript:
+              content: `Raw OCR text:
               ${tessRes.text}
 
-              Correct OCR typos, infer missing drug letters, and output the clean medical prescription text (Medication Name, Dose, Frequency). Return ONLY the clean medical text.`,
+              CRITICAL RULE: Transcribe the exact drug names, dosages, and instructions without altering, expanding, or guessing any drug names.`,
             },
           ],
           temperature: 0.0,

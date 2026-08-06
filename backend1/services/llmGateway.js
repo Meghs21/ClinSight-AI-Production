@@ -49,6 +49,7 @@ class LLMGateway {
       const groq = this.getGroqClient(apiKey);
       if (groq) {
         try {
+          console.log(`🤖 [LLM GATEWAY CALL] Groq API | Model: ${model || 'llama-3.3-70b-versatile'} | Temperature: 0.0`);
           const messages = [];
           if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
           messages.push({ role: 'user', content: prompt });
@@ -56,12 +57,12 @@ class LLMGateway {
           const res = await groq.chat.completions.create({
             model: model || 'llama-3.3-70b-versatile',
             messages,
-            temperature: 0.3,
+            temperature: 0.0,
           });
           const text = res.choices[0]?.message?.content;
           if (text) return { text, provider: 'groq', model: model || 'llama-3.3-70b-versatile' };
         } catch (err) {
-          console.warn('Groq gateway call failed, attempting fallback:', err.message);
+          console.warn('⚠️ [LLM GATEWAY WARNING] Groq call failed, falling back:', err.message);
         }
       }
     }
