@@ -1,0 +1,5 @@
+Patient Name: Armando Cegria
+Age: 29
+Date: 12-03-90
+Rx: Amoxicillin 500mg PO TID x 7 days
+Diagnosis: Acute Bacterial Sinusitis
