@@ -180,6 +180,22 @@ function validate_biological_bounds(labsObj) {
   return violations;
 }
 
+async function validate_drug_with_nih_rxnorm(drugName) {
+  try {
+    const cleanName = String(drugName).split(/\s+/)[0].replace(/[^a-zA-Z]/g, '');
+    const url = `https://rxnav.nlm.nih.gov/REST/rxcui.json?name=${encodeURIComponent(cleanName)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const rxcui = data.idGroup?.rxnormId?.[0];
+    if (rxcui) {
+      return { verified: true, drug: drugName, rxcui, source: 'NIH_NLM_RxNorm_API' };
+    }
+    return { verified: false, drug: drugName, source: 'NIH_NLM_RxNorm_API' };
+  } catch (err) {
+    return { verified: false, drug: drugName, error: err.message };
+  }
+}
+
 function check_drug_interactions(medication_list) {
   const db = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'drug_interactions.json'), 'utf8'));
   const found = [];
@@ -323,4 +339,5 @@ module.exports = {
   transfer_patient_record,
   search_patient_history,
   validate_biological_bounds,
+  validate_drug_with_nih_rxnorm,
 };
