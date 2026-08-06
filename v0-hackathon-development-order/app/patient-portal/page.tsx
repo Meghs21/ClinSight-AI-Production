@@ -668,7 +668,11 @@ export default function PatientPortalPage() {
                 <div style={{ padding: 12, backgroundColor: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#64748b", marginBottom: 4 }}>
                     <span>Diagnosis</span>
-                    <span style={{ color: "#16a34a", fontWeight: 600 }}>✓ Confidence: {reviewData.conf_diag}%</span>
+                    {reviewData.diagnosis && reviewData.diagnosis !== "None specified" ? (
+                      <span style={{ color: "#16a34a", fontWeight: 600 }}>✓ Confidence: {reviewData.conf_diag}%</span>
+                    ) : (
+                      <span style={{ color: "#94a3b8", fontWeight: 500 }}>No Data Extracted (0%)</span>
+                    )}
                   </div>
                   {isEditing ? (
                     <input
@@ -678,7 +682,9 @@ export default function PatientPortalPage() {
                       style={{ width: "100%", padding: 6, borderRadius: 6, border: "1px solid #cbd5e1", fontSize: 13 }}
                     />
                   ) : (
-                    <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>✓ {reviewData.diagnosis}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: reviewData.diagnosis === "None specified" ? "#94a3b8" : "#0f172a" }}>
+                      {reviewData.diagnosis}
+                    </div>
                   )}
                 </div>
 
@@ -686,7 +692,11 @@ export default function PatientPortalPage() {
                 <div style={{ padding: 12, backgroundColor: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#64748b", marginBottom: 4 }}>
                     <span>Medication</span>
-                    <span style={{ color: "#16a34a", fontWeight: 600 }}>✓ Confidence: {reviewData.conf_med}%</span>
+                    {reviewData.medications && reviewData.medications !== "None specified" ? (
+                      <span style={{ color: "#16a34a", fontWeight: 600 }}>✓ Confidence: {reviewData.conf_med}%</span>
+                    ) : (
+                      <span style={{ color: "#94a3b8", fontWeight: 500 }}>No Data Extracted (0%)</span>
+                    )}
                   </div>
                   {isEditing ? (
                     <input
@@ -696,7 +706,9 @@ export default function PatientPortalPage() {
                       style={{ width: "100%", padding: 6, borderRadius: 6, border: "1px solid #cbd5e1", fontSize: 13 }}
                     />
                   ) : (
-                    <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>✓ {reviewData.medications}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: reviewData.medications === "None specified" ? "#94a3b8" : "#0f172a" }}>
+                      {reviewData.medications}
+                    </div>
                   )}
                 </div>
 
@@ -704,7 +716,11 @@ export default function PatientPortalPage() {
                 <div style={{ padding: 12, backgroundColor: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#64748b", marginBottom: 4 }}>
                     <span>Lab Values</span>
-                    <span style={{ color: "#16a34a", fontWeight: 600 }}>✓ Confidence: {reviewData.conf_lab}%</span>
+                    {(reviewData.hba1c && reviewData.hba1c !== "N/A") || (reviewData.creatinine && reviewData.creatinine !== "N/A") ? (
+                      <span style={{ color: "#16a34a", fontWeight: 600 }}>✓ Confidence: {reviewData.conf_lab}%</span>
+                    ) : (
+                      <span style={{ color: "#94a3b8", fontWeight: 500 }}>No Data Extracted (0%)</span>
+                    )}
                   </div>
                   {isEditing ? (
                     <div style={{ display: "flex", gap: 10 }}>
