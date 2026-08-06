@@ -15,7 +15,14 @@ const UPLOAD_DIR = process.env.VERCEL
   : path.join(__dirname, '../uploads/');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-const upload = multer({ dest: UPLOAD_DIR });
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || '.png';
+    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+  },
+});
+const upload = multer({ storage });
 
 // Custom Multer Middleware Wrapper to handle any field name safely and return JSON errors
 function handleFileUpload(req, res, next) {
