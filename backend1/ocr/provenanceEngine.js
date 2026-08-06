@@ -91,15 +91,39 @@ function wrapDocumentPayloadWithProvenance(structuredData, ocrMeta = {}) {
     });
   }
 
+  // Guardrail: Detect LLM commentary leaks or excessive length
+  const COMMENTARY_PATTERNS = [
+    /your correction/i,
+    /is a good practice/i,
+    /it would be a good idea/i,
+    /clean medical text/i,
+    /transcription/i,
+    /as an AI/i,
+    /note that/i,
+  ];
+
+  function detectCommentary(val, maxLength = 150) {
+    if (!val) return false;
+    const str = String(val);
+    if (str.length > maxLength) return true;
+    return COMMENTARY_PATTERNS.some((p) => p.test(str));
+  }
+
+  const medLeak = detectCommentary(structuredData.medications, 200);
+  const diagLeak = detectCommentary(structuredData.diagnosis, 150);
+  const hasLeak = medLeak || diagLeak;
+
   return {
     structured: structuredData,
     provenance: provenanceFields,
     versions: PIPELINE_VERSIONS,
+    requires_human_review: hasLeak,
+    leak_detected: hasLeak,
     confidence_summary: {
-      medication_confidence: 98,
-      diagnosis_confidence: 93,
+      medication_confidence: medLeak ? 40 : 98,
+      diagnosis_confidence: diagLeak ? 40 : 93,
       lab_value_confidence: 99,
-      overall_confidence: Math.round(overallConf * 100),
+      overall_confidence: hasLeak ? 40 : Math.round(overallConf * 100),
     },
   };
 }

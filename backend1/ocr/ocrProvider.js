@@ -39,7 +39,7 @@ class GroqLLMProvider extends OCRProvider {
       const tesseract = new TesseractProvider();
       const tessRes = await tesseract.processDocument(filePath);
 
-      // 2. Use Groq Llama 3.3 70B to correct OCR text and extract handwritten doctor prescription fields
+      // 2. Use Groq Llama 3.3 70B to correct OCR text and output structured JSON
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -51,18 +51,17 @@ class GroqLLMProvider extends OCRProvider {
           messages: [
             {
               role: 'system',
-              content: 'You are an expert clinical pharmacologist and medical transcript reader. Correct OCR errors in handwritten doctor notes and output clean medical text.',
+              content: 'You are a precise clinical transcript extractor. Return ONLY clean transcribed text. Do NOT include any commentary, explanations, greetings, or feedback about the correction process.',
             },
             {
               role: 'user',
-              content: `Here is raw OCR text from a handwritten doctor prescription sheet:
+              content: `Here is raw OCR text from a medical prescription/lab sheet:
               ${tessRes.text}
-              
-              Correct any OCR typos (e.g. "HCO 20prag" -> "Tab. HCQS 200mg", "folfan" -> "Tab. Folitrax 15mg", "Wysdlaw" -> "Tab. Wysolone 5mg", "Sehveolns" -> "Scleroderma").
-              Return the clean transcribed medical prescription text.`,
+
+              CRITICAL INSTRUCTION: Return ONLY the corrected clinical text. Do NOT add phrases like "Here is the clean text", "Your corrections are accurate", "is a good practice", or any explanations. If no text is found, return empty string.`,
             },
           ],
-          temperature: 0.2,
+          temperature: 0.0,
         }),
       });
 
@@ -71,7 +70,13 @@ class GroqLLMProvider extends OCRProvider {
         throw new Error(data.error?.message || 'Groq API call failed');
       }
 
-      const correctedText = data.choices?.[0]?.message?.content || tessRes.text;
+      let correctedText = data.choices?.[0]?.message?.content || tessRes.text;
+
+      // Clean LLM Meta-Commentary artifacts
+      correctedText = correctedText
+        .replace(/^(Here is|Below is|Here are|The following is|Clean transcribed)[^:\n]*:\s*/i, '')
+        .replace(/(Your corrections are|a good practice|recommend|it would be a good idea|no OCR typos).*/is, '')
+        .trim();
 
       return {
         text: correctedText.trim(),
