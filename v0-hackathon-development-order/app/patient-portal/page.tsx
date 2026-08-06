@@ -121,8 +121,13 @@ export default function PatientPortalPage() {
       formData.append("patientId", patientId);
       formData.append("autoIngest", "false"); // Do not auto-commit, allow review first
 
+      const token = typeof window !== "undefined" ? localStorage.getItem("medai_token") : null;
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
       const res = await fetch(`${BACKEND_URL}/api/upload`, {
         method: "POST",
+        headers,
         body: formData,
       });
 
@@ -175,9 +180,13 @@ export default function PatientPortalPage() {
         clinical_summary: `Validated extraction: ${reviewData.diagnosis}. Meds: ${reviewData.medications}`,
       };
 
+      const token = typeof window !== "undefined" ? localStorage.getItem("medai_token") : null;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
       const res = await fetch(`${BACKEND_URL}/api/ingest`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ patientId, clinicalData }),
       });
 

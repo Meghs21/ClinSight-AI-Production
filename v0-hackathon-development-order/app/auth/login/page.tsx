@@ -40,7 +40,12 @@ export default function DoctorLoginPage() {
       const assignedRole = data.role || data.user?.role || role;
       localStorage.setItem("medai_user", JSON.stringify(data.user));
       localStorage.setItem("medai_role", assignedRole);
-      document.cookie = "medai_auth=1; path=/; max-age=2592000; samesite=lax";
+      if (data.token) {
+        localStorage.setItem("medai_token", data.token);
+        document.cookie = `medai_auth=${data.token}; path=/; max-age=2592000; samesite=lax`;
+      } else {
+        document.cookie = "medai_auth=1; path=/; max-age=2592000; samesite=lax";
+      }
       
       if (assignedRole === "patient") {
         router.push("/patient-portal");
