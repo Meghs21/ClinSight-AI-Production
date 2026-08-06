@@ -1,4 +1,6 @@
 const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
 const { processUploadedDocument } = require('../agents/ocrAgent');
 const { runIngestionAgent } = require('../agents/ingestionAgent');
 const blockchain = require('../blockchain/logger');
@@ -12,7 +14,12 @@ async function uploadDocument(req, res) {
     const { patientId, apiKey, model, autoIngest } = req.body || {};
     const filePath = req.file.path;
 
+    const fileBuffer = fs.readFileSync(filePath);
+    const fileHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+    console.log(`📥 [UPLOAD RECEIVED] File: ${req.file.originalname} | Size: ${req.file.size} bytes | SHA256: ${fileHash} | PatientId: ${patientId || 'Unspecified'}`);
+
     const ocrResult = await processUploadedDocument(filePath, apiKey, model);
+    console.log(`🤖 [OCR RAW TEXT EXTRACTED]:\n${ocrResult.raw_text}`);
 
     const shouldAutoIngest = autoIngest !== false && autoIngest !== 'false';
     if (patientId && ocrResult.success && ocrResult.structured && shouldAutoIngest) {
@@ -29,6 +36,7 @@ async function uploadDocument(req, res) {
       ocr: ocrResult,
     });
   } catch (err) {
+    console.error('❌ Upload Controller Error:', err.message);
     res.status(500).json({ error: err.message });
   }
 }

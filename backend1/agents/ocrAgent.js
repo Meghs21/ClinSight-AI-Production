@@ -124,6 +124,9 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
       };
     }
 
+    console.log(`🤖 [OCR PROVIDER]: ${ocrMeta?.provider || 'Unknown'} | Length: ${rawText.length} chars | Handwritten: ${ocrMeta?.isHandwritten}`);
+    console.log(`🤖 [OCR RAW EXTRACTED TEXT]:\n${rawText.slice(0, 1000)}`);
+
     if (!rawText || !rawText.trim()) {
       return { success: false, error: "OCR produced empty text" };
     }

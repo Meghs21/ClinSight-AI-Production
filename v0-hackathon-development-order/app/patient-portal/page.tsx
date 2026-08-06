@@ -140,16 +140,28 @@ export default function PatientPortalPage() {
       const parserName = data.ocr?.parser || "TesseractOCR";
       const docCategory = data.ocr?.document_category || "LAB_REPORT";
 
+      const formattedDiag = (Array.isArray(struct.diagnosis) && struct.diagnosis.length > 0)
+        ? struct.diagnosis.join(", ")
+        : (typeof struct.diagnosis === "string" && struct.diagnosis ? struct.diagnosis : "None specified");
+
+      const formattedMeds = (Array.isArray(struct.medications) && struct.medications.length > 0)
+        ? struct.medications.join(", ")
+        : (typeof struct.medications === "string" && struct.medications ? struct.medications : "None specified");
+
+      const formattedSymptoms = (Array.isArray(struct.symptoms) && struct.symptoms.length > 0)
+        ? struct.symptoms.join(", ")
+        : (typeof struct.symptoms === "string" && struct.symptoms ? struct.symptoms : "None specified");
+
       setReviewData({
         visit_date: new Date().toISOString().slice(0, 10),
-        diagnosis: Array.isArray(struct.diagnosis) ? struct.diagnosis.join(", ") : struct.diagnosis || "Type II Diabetes Mellitus",
-        medications: Array.isArray(struct.medications) ? struct.medications.join(", ") : struct.medications || "Metformin 1000mg",
-        hba1c: labs.HbA1c ? `${labs.HbA1c}%` : "9.4%",
-        creatinine: labs.SerumCreatinine ? `${labs.SerumCreatinine} mg/dL` : "2.1 mg/dL",
-        symptoms: Array.isArray(struct.symptoms) ? struct.symptoms.join(", ") : struct.symptoms || "Polyuria, fatigue",
-        conf_med: 98,
-        conf_diag: 93,
-        conf_lab: 99,
+        diagnosis: formattedDiag,
+        medications: formattedMeds,
+        hba1c: labs.HbA1c !== undefined && labs.HbA1c !== null ? `${labs.HbA1c}%` : "N/A",
+        creatinine: labs.SerumCreatinine !== undefined && labs.SerumCreatinine !== null ? `${labs.SerumCreatinine} mg/dL` : "N/A",
+        symptoms: formattedSymptoms,
+        conf_med: Math.round((data.ocr?.confidence_summary?.medication_confidence || 95)),
+        conf_diag: Math.round((data.ocr?.confidence_summary?.diagnosis_confidence || 95)),
+        conf_lab: Math.round((data.ocr?.confidence_summary?.lab_value_confidence || 95)),
         parser: parserName,
         category: docCategory,
         ocr_version: data.ocr?.versions?.ocr_version || "tesseract_v5.3",
@@ -169,14 +181,17 @@ export default function PatientPortalPage() {
   const handleConfirmAndSave = async () => {
     setSavingIngestion(true);
     try {
+      const hba1cVal = isNaN(parseFloat(reviewData.hba1c)) ? null : parseFloat(reviewData.hba1c);
+      const creatVal = isNaN(parseFloat(reviewData.creatinine)) ? null : parseFloat(reviewData.creatinine);
+
       const clinicalData = {
-        patient_name: user?.name || "Rajan Subramaniam",
-        diagnosis: reviewData.diagnosis.split(",").map((s) => s.trim()),
-        medications: reviewData.medications.split(",").map((s) => s.trim()),
-        symptoms: reviewData.symptoms.split(",").map((s) => s.trim()),
+        patient_name: user?.name || "Patient Record",
+        diagnosis: reviewData.diagnosis ? reviewData.diagnosis.split(",").map((s) => s.trim()).filter(Boolean) : [],
+        medications: reviewData.medications ? reviewData.medications.split(",").map((s) => s.trim()).filter(Boolean) : [],
+        symptoms: reviewData.symptoms ? reviewData.symptoms.split(",").map((s) => s.trim()).filter(Boolean) : [],
         lab_results: {
-          HbA1c: parseFloat(reviewData.hba1c) || 9.4,
-          SerumCreatinine: parseFloat(reviewData.creatinine) || 2.1,
+          ...(hba1cVal !== null ? { HbA1c: hba1cVal } : {}),
+          ...(creatVal !== null ? { SerumCreatinine: creatVal } : {}),
         },
         clinical_summary: `Validated extraction: ${reviewData.diagnosis}. Meds: ${reviewData.medications}`,
       };
