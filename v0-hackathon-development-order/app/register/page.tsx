@@ -71,7 +71,12 @@ export default function RegisterPage() {
 
       localStorage.setItem("medai_user", JSON.stringify(data.user));
       localStorage.setItem("medai_role", role);
-      document.cookie = "medai_auth=1; path=/; max-age=2592000; samesite=lax";
+      if (data.token) {
+        localStorage.setItem("medai_token", data.token);
+        document.cookie = `medai_auth=${data.token}; path=/; max-age=2592000; samesite=lax`;
+      } else {
+        document.cookie = "medai_auth=1; path=/; max-age=2592000; samesite=lax";
+      }
 
       if (role === "patient") {
         router.push("/patient-portal");
