@@ -49,30 +49,25 @@ class GroqLLMProvider extends OCRProvider {
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
           messages: [
-            {
-              role: 'system',
-              content: `You are an expert clinical OCR transcription engine.
-Clean up garbled handwritten OCR text from medical prescriptions into clean clinical text.
+        {
+          role: 'system',
+          content: `You are an expert clinical OCR transcription engine.
+Transcribe handwritten medical text into clean, structured clinical text.
 
-Handwritten medical OCR cleaning rules:
-1. "Sedroclunn" or "SLE / Scleroderma" -> "Diagnosis: SLE with Scleroderma"
-2. "H:CQOx 2080" -> "Tab. HCQS 200mg one daily at night"
-3. "Folshmue (Srv Ine" -> "Tab. Folitrax 15mg once per week (Friday night)"
-4. "foludle Soy haves" -> "Tab. Folvite 5mg twice per week (Saturdays, Sundays)"
-5. "Reklef-D" -> "Rablet-D one daily before breakfast"
-6. "De 24" -> "Cap. D-logy one every month"
-7. "Wysdlas Sop" -> "Tab. Wysolone 5mg once daily"
+Generalized Clinical Transcription Rules:
+1. Extract Diagnosis, Chief Complaints, Medications, Dosages, Frequencies, and Duration.
+2. Fix obvious character OCR typos (e.g. "Tab." instead of "Taub.", "Cap." instead of "Cp.") using clinical context.
+3. CRITICAL RULE: You MUST preserve the full dosing frequency and schedule timing (e.g. "once per week", "twice per week", "once daily at night", "before breakfast", "one every month"). Do NOT drop frequency or timing details.
+4. Do NOT invent fake drug names or diagnoses. If a word is unclear, output the raw literal string so the downstream RxNorm guardrail can validate it.`,
+        },
+        {
+          role: 'user',
+          content: `Raw handwritten OCR text:
+          ${tessRes.text}
 
-CRITICAL RULE: You MUST preserve the full dosing frequency and schedule timing (e.g. "once per week (Friday night)", "twice per week (Saturdays, Sundays)", "at night", "before breakfast", "one every month"). Do NOT drop frequency or timing details.`,
-            },
-            {
-              role: 'user',
-              content: `Raw handwritten OCR text:
-              ${tessRes.text}
-
-              Output clean transcribed medical text with full dosing frequencies and schedules.`,
-            },
-          ],
+          Output clean transcribed medical text with full dosing frequencies and schedules.`,
+        },
+      ],
           temperature: 0.0,
         }),
       });
