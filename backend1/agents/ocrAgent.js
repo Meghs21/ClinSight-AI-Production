@@ -212,12 +212,39 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
       }
     }
 
+    // Stage 6.5: Methotrexate / Folitrax Weekly Dosing Safety Guardrail
+    const WEEKLY_ONLY_DRUGS = [/folitrax/i, /methotrexate/i, /trexall/i, /rasuvo/i];
+    let weeklyDosingViolation = false;
+    let weeklyDosingMessage = "";
+
+    for (const medStr of structured.medications || []) {
+      const isWeeklyDrug = WEEKLY_ONLY_DRUGS.some((regex) => regex.test(medStr));
+      if (isWeeklyDrug) {
+        const mentionsWeekly = /(once\s+per\s+week|weekly|1x\/week|once\s+a\s+week|friday|sat|sun|week)/i.test(medStr);
+        const mentionsDaily = /\b(daily|once\s+daily|every\s+day|qd|1x\/day)\b/i.test(medStr);
+        if (mentionsDaily || !mentionsWeekly) {
+          weeklyDosingViolation = true;
+          weeklyDosingMessage = `🚨 CRITICAL SAFETY GUARDRAIL: ${medStr} (Methotrexate-class) must be dosed WEEKLY. Daily or unspecified frequency detected — mandatory human review required!`;
+          console.warn(`🚨 [CRITICAL DOSING SAFETY GUARDRAIL]: ${weeklyDosingMessage}`);
+        }
+      }
+    }
+
     // Stage 7: Wrap Payload with Field Provenance & Versioning Tags
     const wrapped = wrapDocumentPayloadWithProvenance(structured, ocrMeta);
 
-    if (hasUnrecognizedDrug) {
-      wrapped.confidence_summary.medication_confidence = 40;
-      wrapped.confidence_summary.overall_confidence = 40;
+    if (hasUnrecognizedDrug || weeklyDosingViolation) {
+      wrapped.confidence_summary.medication_confidence = 30;
+      wrapped.confidence_summary.overall_confidence = 30;
+    }
+
+    const allViolations = [...rangeViolations];
+    if (weeklyDosingViolation) {
+      allViolations.push({
+        test_name: 'WeeklyDosingCheck',
+        severity: 'CRITICAL_MEDICATION_SAFETY_VIOLATION',
+        message: weeklyDosingMessage,
+      });
     }
 
     return {
@@ -229,11 +256,12 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
       provenance: wrapped.provenance,
       versions: wrapped.versions,
       confidence_summary: wrapped.confidence_summary,
-      validation_violations: rangeViolations,
+      validation_violations: allViolations,
       parser: ocrMeta?.provider || "TesseractOCR",
-      requires_human_review: rangeViolations.length > 0 || (ocrMeta?.confidence || 0.95) < 0.85 || hasUnrecognizedDrug,
+      requires_human_review: rangeViolations.length > 0 || (ocrMeta?.confidence || 0.95) < 0.85 || hasUnrecognizedDrug || weeklyDosingViolation,
       drug_validation: drugValidationResults,
       unrecognized_drug_detected: hasUnrecognizedDrug,
+      weekly_dosing_violation: weeklyDosingViolation,
     };
   } catch (error) {
     return {

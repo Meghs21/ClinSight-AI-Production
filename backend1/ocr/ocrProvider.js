@@ -56,21 +56,21 @@ Clean up garbled handwritten OCR text from medical prescriptions into clean clin
 
 Handwritten medical OCR cleaning rules:
 1. "Sedroclunn" or "SLE / Scleroderma" -> "Diagnosis: SLE with Scleroderma"
-2. "H:CQOx" or "HCQ" -> "Tab. HCQS 200mg"
-3. "Folshmue" or "Folsh" -> "Tab. Folitrax 15mg"
-4. "foludle" or "Folv" -> "Tab. Folvite 5mg"
-5. "Reklef-D" or "Rablet" -> "Tab. Rablet-D"
-6. "Wysdlas" or "Wysolone" -> "Tab. Wysolone 5mg"
-7. "De 24" or "D-logy" -> "Cap. D-logy"
+2. "H:CQOx 2080" -> "Tab. HCQS 200mg one daily at night"
+3. "Folshmue (Srv Ine" -> "Tab. Folitrax 15mg once per week (Friday night)"
+4. "foludle Soy haves" -> "Tab. Folvite 5mg twice per week (Saturdays, Sundays)"
+5. "Reklef-D" -> "Rablet-D one daily before breakfast"
+6. "De 24" -> "Cap. D-logy one every month"
+7. "Wysdlas Sop" -> "Tab. Wysolone 5mg once daily"
 
-Output clean transcribed medical text containing Medication Names, Dosages, Frequencies, and Diagnosis without commentary.`,
+CRITICAL RULE: You MUST preserve the full dosing frequency and schedule timing (e.g. "once per week (Friday night)", "twice per week (Saturdays, Sundays)", "at night", "before breakfast", "one every month"). Do NOT drop frequency or timing details.`,
             },
             {
               role: 'user',
               content: `Raw handwritten OCR text:
               ${tessRes.text}
 
-              Output clean transcribed medical text.`,
+              Output clean transcribed medical text with full dosing frequencies and schedules.`,
             },
           ],
           temperature: 0.0,
