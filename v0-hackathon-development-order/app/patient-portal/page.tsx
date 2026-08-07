@@ -629,8 +629,36 @@ export default function PatientPortalPage() {
                   Patient: <span style={{ color: "#0f172a", fontWeight: 700 }}>{user?.name || "Rajan Subramaniam"}</span>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 8px", borderRadius: 12, backgroundColor: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe" }}>
-                    Engine: {(reviewData as any).parser || "TesseractOCR"}
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: "3px 10px",
+                    borderRadius: 12,
+                    backgroundColor: ((reviewData as any).parser || "").includes("OpenAI")
+                      ? "#ecfdf5"
+                      : ((reviewData as any).parser || "").includes("Gemini")
+                      ? "#eff6ff"
+                      : "#fffbe6",
+                    color: ((reviewData as any).parser || "").includes("OpenAI")
+                      ? "#047857"
+                      : ((reviewData as any).parser || "").includes("Gemini")
+                      ? "#1d4ed8"
+                      : "#b45309",
+                    border: `1px solid ${
+                      ((reviewData as any).parser || "").includes("OpenAI")
+                        ? "#a7f3d0"
+                        : ((reviewData as any).parser || "").includes("Gemini")
+                        ? "#bfdbfe"
+                        : "#fde68a"
+                    }`,
+                  }}>
+                    Engine: {
+                      ((reviewData as any).parser || "").includes("OpenAI")
+                        ? "OpenAI GPT-4o Vision (Tier 2 Failover)"
+                        : ((reviewData as any).parser || "").includes("Gemini")
+                        ? "Gemini 3.6 Flash (Tier 1 Vision)"
+                        : ((reviewData as any).parser || "TesseractOCR") + " (Offline Fallback)"
+                    }
                   </span>
                   <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 8px", borderRadius: 12, backgroundColor: "#f0fdf4", color: "#15803d", border: "1px solid #bbf7d0" }}>
                     Category: {(reviewData as any).category || "LAB_REPORT"}
