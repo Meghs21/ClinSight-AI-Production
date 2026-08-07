@@ -162,11 +162,83 @@ class GeminiVisionProvider extends OCRProvider {
         }
       }
 
-      console.warn(`[${this.name}] All Gemini Vision models failed. Delegating to Tesseract fallback...`);
+      console.warn(`[${this.name}] All Gemini Vision models failed. Attempting secondary OpenAI Vision failover provider...`);
+      if (process.env.OPENAI_API_KEY) {
+        const secondaryVision = new OpenAIVisionProvider();
+        return secondaryVision.processDocument(filePath);
+      }
+
+      console.warn(`[${this.name}] No secondary vision provider available. Delegating to Tesseract fallback...`);
       const fallback = new TesseractProvider();
       return fallback.processDocument(filePath);
     } catch (err) {
       console.warn(`[${this.name}] Gemini Vision error:`, err.message);
+      if (process.env.OPENAI_API_KEY) {
+        const secondaryVision = new OpenAIVisionProvider();
+        return secondaryVision.processDocument(filePath);
+      }
+      const fallback = new TesseractProvider();
+      return fallback.processDocument(filePath);
+    }
+  }
+}
+
+class OpenAIVisionProvider extends OCRProvider {
+  constructor() {
+    super('OpenAIVisionMultimodalOCR');
+    this.apiKey = process.env.OPENAI_API_KEY;
+  }
+
+  async processDocument(filePath) {
+    if (!this.apiKey) {
+      console.warn(`[${this.name}] OPENAI_API_KEY missing, delegating to TesseractProvider...`);
+      const fallback = new TesseractProvider();
+      return fallback.processDocument(filePath);
+    }
+
+    try {
+      const ext = path.extname(filePath).toLowerCase();
+      let mimeType = 'image/png';
+      if (ext === '.jpg' || ext === '.jpeg') mimeType = 'image/jpeg';
+
+      const fileBuffer = fs.readFileSync(filePath);
+      const base64Data = fileBuffer.toString('base64');
+      const dataUrl = `data:${mimeType};base64,${base64Data}`;
+
+      const OpenAI = require('openai');
+      const openai = new OpenAI({ apiKey: this.apiKey });
+
+      const res = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Transcribe all text from this medical image including handwritten notes, doctor prescriptions, dosage instructions, and lab numbers exactly as written with full dosing frequencies and schedules. Return raw transcribed text only.',
+              },
+              {
+                type: 'image_url',
+                image_url: { url: dataUrl },
+              },
+            ],
+          },
+        ],
+        temperature: 0.0,
+      });
+
+      const text = res.choices?.[0]?.message?.content || '';
+
+      return {
+        text: text.trim(),
+        confidence: 0.98,
+        blocks: [{ text, confidence: 0.98 }],
+        provider: this.name,
+        version: 'openai_gpt4o_mini_vision_v1.0',
+      };
+    } catch (err) {
+      console.warn(`[${this.name}] OpenAI Vision failed, delegating to Tesseract:`, err.message);
       const fallback = new TesseractProvider();
       return fallback.processDocument(filePath);
     }
