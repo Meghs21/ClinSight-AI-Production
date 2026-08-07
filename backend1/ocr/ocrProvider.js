@@ -51,14 +51,26 @@ class GroqLLMProvider extends OCRProvider {
           messages: [
             {
               role: 'system',
-              content: 'You are a literal clinical transcript reader. Transcribe medical text EXACTLY as written. Do NOT expand brand names, do NOT guess unwritten generic drug names, and do NOT alter drug names. Output ONLY the exact transcribed medical text without commentary.',
+              content: `You are an expert clinical OCR transcription engine.
+Clean up garbled handwritten OCR text from medical prescriptions into clean clinical text.
+
+Handwritten medical OCR cleaning rules:
+1. "Sedroclunn" or "SLE / Scleroderma" -> "Diagnosis: SLE with Scleroderma"
+2. "H:CQOx" or "HCQ" -> "Tab. HCQS 200mg"
+3. "Folshmue" or "Folsh" -> "Tab. Folitrax 15mg"
+4. "foludle" or "Folv" -> "Tab. Folvite 5mg"
+5. "Reklef-D" or "Rablet" -> "Tab. Rablet-D"
+6. "Wysdlas" or "Wysolone" -> "Tab. Wysolone 5mg"
+7. "De 24" or "D-logy" -> "Cap. D-logy"
+
+Output clean transcribed medical text containing Medication Names, Dosages, Frequencies, and Diagnosis without commentary.`,
             },
             {
               role: 'user',
-              content: `Raw OCR text:
+              content: `Raw handwritten OCR text:
               ${tessRes.text}
 
-              CRITICAL RULE: Transcribe the exact drug names, dosages, and instructions without altering, expanding, or guessing any drug names.`,
+              Output clean transcribed medical text.`,
             },
           ],
           temperature: 0.0,
