@@ -640,9 +640,28 @@ export default function PatientPortalPage() {
 
               {/* Versioning Metadata Tag Bar */}
               <div style={{ fontSize: 11, color: "#64748b", backgroundColor: "#f8fafc", padding: "6px 10px", borderRadius: 6, marginBottom: 16, border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between" }}>
-                <span>OCR Version: {(reviewData as any).ocr_version || "tesseract_v5.3"}</span>
+                <span>OCR Version: {(reviewData as any).ocr_version || "gemini_3.6_flash_multimodal_v1.0"}</span>
                 <span>Validation Version: {(reviewData as any).validation_version || "biological_bounds_v2.0"}</span>
               </div>
+
+              {/* Prominent Fallback Warning Banner for Doctors */}
+              {(((reviewData as any).parser || "").includes("Tesseract") || (reviewData as any).is_fallback || (reviewData as any).requires_human_review) && (
+                <div style={{ backgroundColor: "#fffbe6", border: "1px solid #ffe58f", color: "#d46b08", padding: "12px 16px", borderRadius: 8, marginBottom: 16, display: "flex", alignItems: "center", gap: 10, fontSize: 13, fontWeight: 600 }}>
+                  <AlertTriangle style={{ width: 20, height: 20, flexShrink: 0, color: "#fa8c16" }} />
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>
+                      {((reviewData as any).parser || "").includes("Tesseract")
+                        ? "⚠️ AI Vision API Unavailable — Downgraded to Offline Tesseract OCR Engine"
+                        : "⚠️ Mandatory Clinical Review Required — Drug / Frequency Safety Verification"}
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 400, marginTop: 2 }}>
+                      {((reviewData as any).parser || "").includes("Tesseract")
+                        ? "Primary Gemini Multimodal Vision API was unavailable (503/429 Rate Limit). Pipeline fell back to offline Tesseract OCR. Mandatory 100% manual verification of all drug names, frequencies, and dosages is required!"
+                        : "Extracted drug or dosing frequency requires human confirmation before committing to patient electronic health records."}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Extraction Fields List */}
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>

@@ -126,30 +126,47 @@ class GeminiVisionProvider extends OCRProvider {
 
       const prompt = `Transcribe all text from this medical image including handwritten notes, doctor prescriptions, dosage instructions, and lab numbers exactly as written with full dosing frequencies and schedules. Return raw transcribed text only.`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
-        contents: [
-          prompt,
-          {
-            inlineData: {
-              data: base64Data,
-              mimeType,
-            },
-          },
-        ],
-      });
+      const modelsToTry = ['gemini-3.6-flash', 'gemini-2.0-flash'];
 
-      const text = response.text || '';
+      for (const modelName of modelsToTry) {
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            const response = await ai.models.generateContent({
+              model: modelName,
+              contents: [
+                prompt,
+                {
+                  inlineData: {
+                    data: base64Data,
+                    mimeType,
+                  },
+                },
+              ],
+            });
 
-      return {
-        text: text.trim(),
-        confidence: 0.96,
-        blocks: [{ text, confidence: 0.96 }],
-        provider: this.name,
-        version: 'gemini_2.0_flash_vision_v1.0',
-      };
+            const text = (response.text || '').trim();
+            if (text) {
+              console.log(`✅ [${this.name}] Successfully extracted handwritten image via Gemini Multimodal Vision (${modelName})`);
+              return {
+                text,
+                confidence: 0.98,
+                blocks: [{ text, confidence: 0.98 }],
+                provider: `GeminiVision_${modelName}`,
+                version: `gemini_vision_${modelName}_v1.0`,
+              };
+            }
+          } catch (err) {
+            console.warn(`⚠️ [${this.name}] Model "${modelName}" attempt ${attempt} failed: ${err.message.slice(0, 120)}`);
+            if (attempt < 3) await new Promise((r) => setTimeout(r, 2000 * attempt));
+          }
+        }
+      }
+
+      console.warn(`[${this.name}] All Gemini Vision models failed. Delegating to Tesseract fallback...`);
+      const fallback = new TesseractProvider();
+      return fallback.processDocument(filePath);
     } catch (err) {
-      console.warn(`[${this.name}] Gemini Vision failed, delegating to Tesseract:`, err.message);
+      console.warn(`[${this.name}] Gemini Vision error:`, err.message);
       const fallback = new TesseractProvider();
       return fallback.processDocument(filePath);
     }
@@ -246,11 +263,11 @@ function getOCRProvider(filePath = '', providerName = process.env.OCR_PROVIDER) 
   if (provider === 'azure' || provider === 'azure_doc_ai') {
     return new AzureDocAIProvider();
   }
-  if (provider === 'groq' || provider === 'groq_vision' || process.env.GROQ_API_KEY) {
-    return new GroqLLMProvider();
-  }
   if (provider === 'gemini' || provider === 'gemini_vision' || process.env.GEMINI_API_KEY) {
     return new GeminiVisionProvider();
+  }
+  if (provider === 'groq' || provider === 'groq_vision' || process.env.GROQ_API_KEY) {
+    return new GroqLLMProvider();
   }
 
   return new TesseractProvider();

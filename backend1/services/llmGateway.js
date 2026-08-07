@@ -32,12 +32,12 @@ class LLMGateway {
       if (genAI) {
         try {
           const m = genAI.getGenerativeModel({
-            model: model || 'gemini-1.5-flash',
+            model: model || 'gemini-3.6-flash',
             systemInstruction: systemPrompt || undefined,
           });
           const res = await m.generateContent(prompt);
           const text = res.response?.text();
-          if (text) return { text, provider: 'gemini', model: model || 'gemini-1.5-flash' };
+          if (text) return { text, provider: 'gemini', model: model || 'gemini-3.6-flash' };
         } catch (err) {
           console.warn('Gemini gateway call failed, attempting fallback:', err.message);
         }
