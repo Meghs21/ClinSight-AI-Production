@@ -208,7 +208,9 @@ const INDIAN_BRAND_DICTIONARY = {
 async function validate_drug_with_nih_rxnorm(drugName) {
   try {
     const raw = String(drugName).trim();
-    const firstWord = raw.split(/\s+/)[0].toLowerCase();
+    const cleanRaw = raw.replace(/^(Tab\.|Cap\.|Inj\.|Syrup|Syr\.)\s*/i, '').trim();
+    const words = cleanRaw.split(/\s+/);
+    const firstWord = (words[0] || '').toLowerCase();
     const cleanName = firstWord.replace(/[^a-zA-Z0-9\-]/g, '');
     const alphaOnly = firstWord.replace(/[^a-zA-Z]/g, '');
 

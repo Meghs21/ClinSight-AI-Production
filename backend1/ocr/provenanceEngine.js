@@ -4,11 +4,11 @@
  */
 
 const PIPELINE_VERSIONS = {
-  ocr_version: 'tesseract_v5.3_azure_v3.1',
+  ocr_version: 'gemini_3.6_flash_multimodal_v1.0',
   normalization_version: 'ucum_loinc_rxnorm_2026.1',
   validation_version: 'biological_bounds_v2.0',
   embedding_version: 'text-embedding-3-small-v1',
-  llm_version: 'gemini-1.5-flash-002',
+  llm_version: 'gemini-3.6-flash',
 };
 
 function createFieldProvenance({
