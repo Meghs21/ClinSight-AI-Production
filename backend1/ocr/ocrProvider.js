@@ -121,27 +121,32 @@ class GeminiVisionProvider extends OCRProvider {
       const fileBuffer = fs.readFileSync(filePath);
       const base64Data = fileBuffer.toString('base64');
 
-      const genAI = new GoogleGenerativeAI(this.apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const { GoogleGenAI } = require('@google/genai');
+      const ai = new GoogleGenAI({ apiKey: this.apiKey });
 
-      const imagePart = {
-        inlineData: {
-          data: base64Data,
-          mimeType,
-        },
-      };
+      const prompt = `Transcribe all text from this medical image including handwritten notes, doctor prescriptions, dosage instructions, and lab numbers exactly as written with full dosing frequencies and schedules. Return raw transcribed text only.`;
 
-      const prompt = `Transcribe all text from this medical image including handwritten notes, doctor prescriptions, dosage instructions, and lab numbers exactly as written. Return raw transcribed text only.`;
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: [
+          prompt,
+          {
+            inlineData: {
+              data: base64Data,
+              mimeType,
+            },
+          },
+        ],
+      });
 
-      const result = await model.generateContent([prompt, imagePart]);
-      const text = result.response?.text?.() || '';
+      const text = response.text || '';
 
       return {
         text: text.trim(),
         confidence: 0.96,
         blocks: [{ text, confidence: 0.96 }],
         provider: this.name,
-        version: 'gemini_1.5_flash_vision_v1.0',
+        version: 'gemini_2.0_flash_vision_v1.0',
       };
     } catch (err) {
       console.warn(`[${this.name}] Gemini Vision failed, delegating to Tesseract:`, err.message);
