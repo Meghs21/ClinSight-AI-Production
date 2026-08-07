@@ -54,11 +54,22 @@ async function init() {
     console.warn('RAG init warning:', e.message);
   }
 
-  const PORT = process.env.PORT || 4000;
-  server.listen(PORT, () => {
+  let PORT = process.env.PORT || 4000;
+
+  server.on('error', (err) => {
+    if (err.code === 'EACCES' || err.code === 'EADDRINUSE') {
+      console.warn(`⚠️ Port ${PORT} unavailable (${err.code}). Trying fallback port 5001...`);
+      PORT = 5001;
+      server.listen(PORT, '127.0.0.1');
+    } else {
+      console.error('Server error:', err);
+    }
+  });
+
+  server.listen(PORT, '127.0.0.1', () => {
     console.log(`\nKathir Memorial — Patient Intelligence Backend`);
     console.log(`Running on port ${PORT}`);
-    console.log(`Frontend: ${process.env.FRONTEND_URL || 'http://localhost:5173'}\n`);
+    console.log(`Frontend: ${process.env.FRONTEND_URL || 'http://localhost:3000'}\n`);
   });
 }
 
