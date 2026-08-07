@@ -127,7 +127,7 @@ class GeminiVisionProvider extends OCRProvider {
       const prompt = `Transcribe all text from this medical image including handwritten notes, doctor prescriptions, dosage instructions, and lab numbers exactly as written with full dosing frequencies and schedules. Return raw transcribed text only.`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.6-flash',
         contents: [
           prompt,
           {
