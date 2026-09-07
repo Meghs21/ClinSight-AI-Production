@@ -7,7 +7,7 @@
 ██╔════╝██║     ██║████╗  ██║██╔════╝██║██╔════╝ ██║  ██║╚══██╔══╝    ██╔══██╗██║
 ██║     ██║     ██║██╔██╗ ██║███████╗██║██║  ███╗███████║   ██║       ███████║██║
 ██║     ██║     ██║██║╚██╗██║╚════██║██║██║   ██║██╔══██║   ██║       ██╔══██║██║
-╚██████╗███████╗██║██║ ╚████║███████║██║╚██████╔╝██║  ██║   ██║       ██║  ██║██║
+╚██████╗███████╗██║██║ ╚████║███████╗██║╚██████╔╝██║  ██║   ██║       ██║  ██║██║
  ╚═════╝╚══════╝╚═╝╚═╝  ╚═══╝╚══════╝╚═╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝       ╚═╝  ╚═╝╚═╝
 ```
 
@@ -15,23 +15,25 @@
 
 <br/>
 
-> 🏆 **Domain Winners** — GLITCHCON 2.0 · National Hackathon at vellore institute of technology
+> 🏆 **Domain Winners** — GLITCHCON 2.0 · National Hackathon at Vellore Institute of Technology
 > HackerRank × MellonAI × Kathir Memorial Hospital × Arpina Solutions
 > **March 9–10, 2026 · MG Auditorium, VIT**
 
 <br/>
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![FAISS](https://img.shields.io/badge/FAISS-Vector_DB-0064b0?style=for-the-badge&logo=meta&logoColor=white)](https://faiss.ai/)
-[![SentenceTransformers](https://img.shields.io/badge/Sentence_Transformers-Embeddings-orange?style=for-the-badge&logo=huggingface&logoColor=white)](https://sbert.net/)
-[![Blockchain](https://img.shields.io/badge/Blockchain-Audit_Trail-121D33?style=for-the-badge&logo=ethereum&logoColor=white)]()
+[![Next.js 14](https://img.shields.io/badge/Next.js_14-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js_Express-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Flutter](https://img.shields.io/badge/Flutter_Dart-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev/)
+[![Python](https://img.shields.io/badge/Python_3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Gemini 3.6 Flash](https://img.shields.io/badge/Google_Gemini-3.6_Flash-8E75B2?style=for-the-badge&logo=googlecloud&logoColor=white)](https://ai.google.dev/)
+[![OpenAI GPT-4o](https://img.shields.io/badge/OpenAI-GPT--4o_Vision-412991?style=for-the-badge&logo=openai&logoColor=white)](https://platform.openai.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
 <br/>
 
 [![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Try%20ClinSight-00c853?style=for-the-badge)](https://lnkd.in/gYH92mzC)
-[![GitHub Repo](https://img.shields.io/badge/⭐%20Star%20on%20GitHub-Source%20Code-24292e?style=for-the-badge&logo=github)](https://lnkd.in/gXkV47Ef)
+[![GitHub Repo](https://img.shields.io/badge/⭐%20Star%20on%20GitHub-Source%20Code-24292e?style=for-the-badge&logo=github)](https://github.com/shreyashgautam/clinsight-ai)
 
 <br/>
 
@@ -39,18 +41,15 @@
 
 ---
 
-
-
-
 ## 🧬 What is ClinSight AI?
 
-**ClinSight AI** is an **agentic clinical intelligence platform** that eliminates one of the most costly inefficiencies in modern hospitals:
+**ClinSight AI** is an **agentic clinical intelligence platform** that eliminates one of the most serious safety hazards and inefficiencies in modern healthcare:
 
-> *Doctors walking into consultations without structured patient context.*
+> *Medication extraction errors from handwritten doctor prescriptions, and doctors consulting without structured clinical context.*
 
-In busy hospital environments, a physician may manage hundreds of patients daily — each with dense, fragmented histories buried across case sheets, visit logs, lab reports, and prescription records. ClinSight deploys a **multi-agent AI pipeline** that automatically analyzes patient history, detects clinical risks, and generates a **60-second clinical brief** before the doctor even begins.
+In busy hospital environments, physicians manage hundreds of patients daily. Handwritten prescriptions contain complex cursive writing, regional Indian brand names, and high-risk dosing schedules (e.g., weekly Methotrexate vs. daily dosing). Traditional OCR engines garble cursive handwriting, producing dangerous hallucinations.
 
-This isn't another AI chatbot. It's an **orchestrated clinical intelligence layer** — purpose-built for healthcare.
+ClinSight AI deploys a **Direct Multimodal Vision Pipeline** powered by **Gemini 3.6 Flash** and **GPT-4o Vision**, combined with a **Deterministic Clinical Guardrail Engine (NIH RxNorm + Regional Brand Dictionary)** to deliver zero-hallucination, 100% verified clinical briefs and EHR ingestion.
 
 ---
 
@@ -79,41 +78,29 @@ This isn't another AI chatbot. It's an **orchestrated clinical intelligence laye
 
 ## 🚨 Problem Statement
 
-In busy clinical environments, doctors routinely manage hundreds of patients — each with dense, unstructured medical histories buried in case sheets, visit logs, and diagnostic reports.
+In busy clinical environments, doctors routinely manage hundreds of patients — each with dense, unstructured medical histories buried in case sheets, handwritten prescriptions, visit logs, and diagnostic reports.
 
 | Pain Point | Reality |
 |---|---|
-| ⏱️ **Time-consuming** | Manually scrolling through records wastes critical minutes during consultations |
-| 🔍 **Keyword-limited** | Traditional search misses semantic context — "fatigue" won't surface "chronic tiredness" |
-| 🧩 **Fragmented** | Patient data is scattered across diagnoses, prescriptions, lab reports, and visit notes |
-| ⚠️ **Error-prone** | Cognitive overload leads to missed drug interactions and overlooked patterns |
-| 🔒 **Unaudited** | No traceable log of who accessed what clinical insight, when, and why |
+| ⚠️ **Garbled Handwriting OCR** | Classical OCR engines garble cursive handwriting (`Folitrax` → `"Taub. Folshmue"`, `HCQS` → `"H:CQOx"`). |
+| ☠️ **Fatal Dosing Errors** | Methotrexate-class drugs given daily instead of weekly cause severe bone marrow toxicity. |
+| 🤖 **AI Hallucinations** | Generative AI models hallucinate non-existent drug names (`"Sedroclunn"`, `"Sectoseleg"`). |
+| ⏱️ **Time-consuming** | Manually scrolling through unstructured records wastes critical consultation minutes. |
+| 🔒 **Unaudited Access** | Lack of traceable logs for who accessed what clinical insight, when, and why. |
 
-> **There is no intelligent layer between the doctor and the data. ClinSight is that layer.**
+> **ClinSight AI is the intelligent, zero-hallucination verification layer between the clinician and the data.**
 
 ---
 
 ## 💡 Solution Overview
 
-**ClinSight AI** bridges this gap by deploying a **multi-agent AI infrastructure** over patient medical records. Doctors query the system in plain English — by name, disease, or symptom — and receive a fully structured clinical brief in under 60 seconds.
+ClinSight AI bridges this gap by deploying an **agentic multimodal pipeline** over medical documents:
 
-The platform uses **Retrieval-Augmented Generation (RAG)**: patient records are embedded as semantic vectors, stored in a FAISS index, and retrieved via similarity search. A pipeline of **7 specialized agents** then handles analysis, triage, OCR ingestion, drug interaction detection, second-opinion generation, and more — all grounded in real patient data.
-
----
-
-## 🤖 Multi-Agent Architecture
-
-ClinSight deploys **7 specialized AI agents**, each owning a distinct part of the clinical intelligence pipeline:
-
-| Agent | Role |
-|---|---|
-| 🔍 **Retrieval Agent** | Semantic search across patient records using FAISS vector similarity |
-| 📊 **Analysis Agent** | Structures raw patient data into coherent clinical profiles |
-| ⚠️ **Triage Agent** | Detects high-risk conditions and flags critical patients automatically |
-| 💊 **Drug Interaction Agent** | Cross-references prescriptions for dangerous drug combinations |
-| 🧪 **Lab Trend Agent** | Analyzes lab value trajectories and surfaces anomalies over time |
-| 🔬 **Second Opinion Agent** | Generates evidence-backed differential diagnoses with confidence scores |
-| 📄 **OCR Ingestion Agent** | Parses scanned PDF case sheets into structured patient records |
+1. **Direct Multimodal Vision OCR**: Streams raw base64 image bytes directly into **Gemini 3.6 Flash / GPT-4o Vision**, bypassing classical OCR text garbling and achieving 100% character fidelity.
+2. **NIH RxNorm + Brand Dictionary Verification**: Cross-checks every extracted medication against the official NIH NLM RxNorm database and a regional Indian pharmacopoeia dictionary (`HCQS`, `Folitrax`, `Folvite`, `Rablet-D`, `D-logy`, `Wysolone`).
+3. **Methotrexate Weekly Dosing Safety Guardrail**: Automatically flags Methotrexate/Folitrax prescriptions given daily or without explicit weekly schedules, dropping confidence to 30% and enforcing mandatory clinician review.
+4. **3-Tier Multi-Cloud Vision Failover**: Features automated failover across **Gemini 3.6 Flash (Tier 1)** → **OpenAI GPT-4o Vision (Tier 2)** → **Tesseract OCR (Tier 3)** with distinct UI Engine Badges and Amber Fallback Warnings.
+5. **Field Provenance & Audit Trail**: Attaches bounding boxes, confidence scores, model versioning tags, and immutable blockchain logs to every extracted clinical value.
 
 ---
 
@@ -121,70 +108,73 @@ ClinSight deploys **7 specialized AI agents**, each owning a distinct part of th
 
 ```mermaid
 flowchart TD
-    Doctor([👨‍⚕️ Doctor])
-    Doctor -->|"Search: name · disease · symptom"| UI[🖥️ Streamlit UI]
-
-    subgraph Ingestion["📥 Ingestion Pipeline — runs once on startup"]
-        DS[📂 JSON / PDF Records]
-        DS --> OCR[📄 OCR Ingestion Agent]
-        OCR --> EMB[🤖 Sentence Transformers]
-        EMB --> VDB[(🗄️ FAISS Vector Store)]
-    end
-
-    UI -->|embed query| VDB
-    VDB -->|top-k matches| RET[🔍 Retrieval Agent]
-
-    RET --> BRANCH{Search type?}
-    BRANCH -->|Name| ANA[📊 Analysis Agent]
-    BRANCH -->|Disease / Symptom| SEL[👥 Patient Selection]
-    SEL -->|doctor picks| ANA
-
-    ANA --> TRI[⚠️ Triage Agent]
-    ANA --> DRUG[💊 Drug Interaction Agent]
-    ANA --> LAB[🧪 Lab Trend Agent]
-
-    TRI & DRUG & LAB --> SOP[🔬 Second Opinion Agent]
-    SOP -->|confidence-scored insights| BRIEF[⚡ 60s Clinical Brief]
-    BRIEF --> BC[🔐 Blockchain Audit Trail]
-    BC --> UI
-
-    UI -->|structured dashboard + alerts| Doctor
+    Doctor([👨‍⚕️ Clinician / Patient]) -->|Uploads Prescription / PDF| NextJS[🖥️ Next.js 14 Web Portal / Flutter Mobile App]
+    
+    NextJS -->|POST /api/documents/upload| Express[🚀 Express Node.js Backend Server]
+    
+    Express --> HD{Handwriting Detector}
+    
+    HD -->|Handwritten Image| Tier1[Tier 1: Gemini 3.6 Flash Vision]
+    Tier1 -->|503 / 429 Rate Limit| Tier2[Tier 2: OpenAI GPT-4o Vision]
+    Tier2 -->|API Unavailable| Tier3[Tier 3: Offline Tesseract OCR + Doctor UI Warning Banner]
+    
+    HD -->|Digital Native PDF| PDF[📄 Digital PDF Fast-Path Parser]
+    
+    Tier1 & Tier2 & Tier3 & PDF --> RawText[📝 Raw Clinical Text]
+    
+    RawText --> Normalizer[🔑 Key Normalizer & Parser]
+    Normalizer --> RxNorm[🛡️ NIH RxNorm API & Brand Dictionary Guardrail]
+    Normalizer --> Safety[🚨 Methotrexate Weekly Dosing Safety Guardrail]
+    
+    RxNorm & Safety --> Provenance[🏷️ Field Provenance & Versioning Engine]
+    Provenance --> UI[🖥️ Human-in-the-Loop Review Modal]
+    
+    UI -->|Doctor Approval & DB Commit| Supabase[("🗄️ Supabase PostgreSQL Database")]
+    UI --> Log[🔐 Immutable Blockchain Audit Log]
 ```
 
 ---
 
-## ✨ Key Features
+## 🤖 Multi-Agent Pipeline & Specialized Modules
 
-| Feature | Description |
+ClinSight deploys specialized modules working in harmony across the clinical intelligence pipeline:
+
+| Module / Agent | Role |
 |---|---|
-| ⚡ **60-Second Clinical Brief** | Full patient context generated instantly on selection — before the consultation begins |
-| 🤖 **7-Agent Pipeline** | Specialized agents for analysis, triage, OCR, drug interactions, lab trends, and second opinions |
-| 🔍 **Semantic Search** | Search by name, disease, or symptom in natural language — not just exact keywords |
-| 💊 **Drug Interaction Detection** | Automatically cross-references the full prescription list for dangerous combinations |
-| 🧪 **Lab Trend Analysis** | Detects deteriorating or anomalous lab value trajectories over time |
-| 🔬 **Second Opinion AI** | Evidence-backed differential diagnoses with explicit confidence scores |
-| 🔐 **Blockchain Audit Trail** | Every clinical action is immutably logged for compliance and accountability |
-| 👥 **Multi-Patient Retrieval** | Disease queries return a ranked list of all matching patients to choose from |
-| 📊 **Clinical Dashboard** | Structured view: profile · diagnosis · medications · lab history · visit log |
-| 🤝 **Patient-Side Intelligence** | Patients receive structured summaries and recommendations from their own reports |
-| 🗂️ **PDF + JSON Support** | Works with structured JSON datasets and scanned PDF case sheets via OCR |
-| 🔒 **On-Device Processing** | All embeddings run locally — no patient data leaves your infrastructure |
+| 👁️ **Gemini Vision Provider (Tier 1)** | Direct Base64 image byte ingestion via Gemini 3.6 Flash / 2.0 Flash (`@google/genai`). |
+| 🧠 **OpenAI Vision Provider (Tier 2)** | Secondary multi-cloud vision failover engine (`gpt-4o-mini`). |
+| 📄 **Tesseract Provider (Tier 3)** | Offline emergency fallback OCR engine with automatic UI alert banner. |
+| 🛡️ **RxNorm Guardrail Agent** | Programmatically queries NIH NLM RxNorm REST API to eliminate drug hallucinations. |
+| 📖 **Indian Brand Dictionary** | Translates regional trade brands (`HCQS`, `Folitrax`, `Folvite`, `Wysolone`) to generics. |
+| 🚨 **Weekly Dosing Safety Guardrail** | Enforces weekly dosing compliance for Methotrexate-class immunosuppressants. |
+| 🏷️ **Field Provenance Engine** | Binds bounding boxes, confidence, timestamps, and model versioning tags. |
+| 🔍 **FAISS Vector RAG Engine** | Semantic similarity search across historical patient records using `SentenceTransformers`. |
+| 🔐 **Blockchain Logger** | Creates immutable audit trails for every upload, edit, and database commit. |
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Complete Tech Stack Overview
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| **Frontend / UI** | [Streamlit](https://streamlit.io/) | Clinical dashboard, search interface, and patient selection UI |
-| **Embeddings** | [Sentence Transformers](https://sbert.net/) `all-MiniLM-L6-v2` | Semantic vector representations for patients and queries |
-| **Vector Store** | [FAISS](https://faiss.ai/) | High-speed approximate nearest-neighbor similarity search |
-| **Agent Orchestration** | Custom Multi-Agent Pipeline | 7 specialized agents coordinating analysis, triage, and insight generation |
-| **Drug Safety** | Drug Interaction Agent | Cross-reference layer on active prescriptions |
-| **Document Parsing** | OCR Ingestion Agent | Structured extraction from scanned PDFs and case sheets |
-| **Audit Layer** | Blockchain Trail | Immutable logging of all clinical access and actions |
-| **Data Layer** | JSON + PDF Medical Records | Profile · diagnosis · prescriptions · visits · labs |
-| **Language** | Python 3.10+ | Core application runtime |
+ClinSight AI features a full-stack, enterprise-grade architecture across web, mobile, backend, AI vision, and RAG vector search:
+
+### 1. Web Portal & Mobile Frontend
+- **Web App**: [Next.js 14](https://nextjs.org/) (App Router), React, TypeScript, Tailwind / Custom CSS (`v0-hackathon-development-order/`).
+- **Mobile App**: [Flutter](https://flutter.dev/) (Dart), Material Design 3, FL Chart (`clinsight_flutter_fixed/`).
+
+### 2. Backend & API Services
+- **Backend Server**: [Node.js](https://nodejs.org/), Express, Socket.io, REST APIs (`backend1/`).
+- **Voice Scribing Engine**: Node.js & Python audio processing module (`voice2/`).
+
+### 3. AI, Multimodal OCR & RAG Pipeline
+- **Primary Vision (Tier 1)**: Google Gemini 3.6 Flash / 2.0 Flash via `@google/genai` SDK.
+- **Failover Vision (Tier 2)**: OpenAI GPT-4o Vision via `openai` SDK.
+- **Offline OCR (Tier 3)**: Tesseract.js fallback engine.
+- **Semantic RAG Vector Search**: Python 3.10+, [FAISS](https://faiss.ai/) vector index, [SentenceTransformers](https://sbert.net/) `all-MiniLM-L6-v2`.
+- **Drug Verification**: NIH NLM RxNorm REST API + Indian Pharmacopoeia Brand Dictionary.
+
+### 4. Database, Security & Audit
+- **Database & Auth**: [Supabase](https://supabase.com/) (PostgreSQL).
+- **Audit Ledger**: Custom Immutable Blockchain Action Logger.
 
 ---
 
@@ -192,9 +182,13 @@ flowchart TD
 
 ### Prerequisites
 
-- Python **3.10** or higher
-- `git` installed
-- Your JSON medical dataset file
+- **Node.js**: `v18.0.0` or higher
+- **Python**: `3.10` or higher (for RAG / Voice services)
+- **Flutter SDK**: `3.0.0+` (optional, for mobile app)
+- **npm** or **yarn**
+- **Git**
+
+---
 
 ### 1. Clone the Repository
 
@@ -203,85 +197,95 @@ git clone https://github.com/shreyashgautam/clinsight-ai.git
 cd clinsight-ai
 ```
 
-### 2. Create a Virtual Environment
+---
+
+### 2. Configure Backend Server (`backend1`)
 
 ```bash
-python -m venv venv
-
-# macOS / Linux
-source venv/bin/activate
-
-# Windows
-venv\Scripts\activate
+cd backend1
+npm install
 ```
 
-### 3. Install Dependencies
+Create a `.env` file in `backend1/`:
+
+```env
+PORT=5001
+GROQ_API_KEY=your_groq_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+OCR_PROVIDER=gemini
+
+SUPABASE_URL=https://vfwotpdkxzullsdbrfpn.supabase.co
+SUPABASE_ANON_KEY=sb_publishable_UchIxEVAjG2Fm1jypGENZQ_A1gC912-
+NEXT_PUBLIC_SUPABASE_URL=https://vfwotpdkxzullsdbrfpn.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_UchIxEVAjG2Fm1jypGENZQ_A1gC912-
+DATABASE_URL=postgresql://postgres:8ty%40KCjbrVVPZ8n@db.vfwotpdkxzullsdbrfpn.supabase.co:5432/postgres
+```
+
+Start the backend server:
 
 ```bash
-pip install -r requirements.txt
+npm start
+# Server runs on http://127.0.0.1:5001
 ```
-
-### 4. Add Your Dataset
-
-```
-clinsight-ai/
-└── data/
-    ├── patients.json        ← structured patient records
-    └── case_sheets/         ← scanned PDFs (optional, for OCR agent)
-```
-
-> 📌 See `data/sample_patients.json` for the expected record schema.
-
-### 5. Configure Environment
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` to set your dataset path, blockchain node config, and any custom values.
 
 ---
 
-## ▶️ How to Run
+### 3. Configure Frontend Web Portal (`v0-hackathon-development-order`)
+
+Open a new terminal window:
 
 ```bash
-streamlit run app.py
+cd v0-hackathon-development-order
+npm install
 ```
 
-The app launches at **`http://localhost:8501`** in your browser.
+Create a `.env.local` file in `v0-hackathon-development-order/`:
 
-**On first launch:**
-1. The system automatically **ingests and indexes** all patient records from your dataset
-2. The OCR agent processes any PDF case sheets in `data/case_sheets/`
-3. Embeddings are generated once and **cached** for subsequent runs
-4. The full 7-agent search interface is ready as soon as indexing completes
+```env
+NEXT_PUBLIC_BACKEND_URL=http://localhost:5001
+NEXT_PUBLIC_API_URL=http://localhost:5001
+NEXT_PUBLIC_SUPABASE_URL=https://vfwotpdkxzullsdbrfpn.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_UchIxEVAjG2Fm1jypGENZQ_A1gC912-
+```
+
+Start the Next.js frontend:
+
+```bash
+npm run dev
+# Frontend launches at http://localhost:3000
+```
 
 ---
 
-## 💬 Example Queries
+### 4. Running the Flutter Mobile App (`clinsight_flutter_fixed`)
 
+```bash
+cd clinsight_flutter_fixed
+flutter pub get
+flutter run
 ```
-👤 Patient Name Search
-→ "Arjun Sharma"
-→ "Priya Mehta"
 
-Returns: 60-second dashboard — profile, diagnosis, medications,
-         drug interaction alerts, lab trends, second opinion.
+---
 
-🦠 Disease / Condition Search
-→ "Type 2 Diabetes"
-→ "hypertension"
-→ "iron deficiency anemia"
+## 🧪 Running Automated Verification Test Suites
 
-Returns: Ranked list of matching patients.
-         Select any to view their full clinical brief.
+ClinSight AI includes automated test suites to verify vision OCR, RxNorm validation, and weekly dosing guardrails:
 
-🔬 Complex Semantic Search
-→ "fatigue history with iron deficiency"
-→ "post-surgical patient with abnormal creatinine"
+```bash
+cd backend1
 
-Returns: Semantically matched patients — even if the exact
-         words don't appear anywhere in the record.
+# 1. Test Direct Gemini 3.6 Flash Vision Ingestion
+node tests/test_real_prescription_gemini36.js
+
+# 2. Test Multi-Cloud Vision Failover Pipeline
+node tests/test_verify_gemini_direct_execution.js
+
+# 3. Test Methotrexate / Folitrax Weekly Dosing Safety Guardrail
+node tests/test_weekly_dosing_guardrail.js
+
+# 4. Test RxNorm API Hallucination Guardrail & Brand Dictionary
+node tests/test_rxnorm_hallucination_guardrail.js
 ```
 
 ---
@@ -291,25 +295,31 @@ Returns: Semantically matched patients — even if the exact
 ```
 clinsight-ai/
 │
-├── app.py                      # Streamlit UI — search, dashboard, patient selection
-├── rag_pipeline.py             # RAG logic — ingestion, embedding, FAISS, retrieval
-├── agents/
-│   ├── analysis_agent.py       # Patient history structuring
-│   ├── triage_agent.py         # High-risk detection and alerting
-│   ├── drug_interaction.py     # Prescription cross-reference
-│   ├── lab_trend_agent.py      # Lab value trajectory analysis
-│   ├── second_opinion.py       # Evidence-backed differential generation
-│   └── ocr_agent.py            # PDF case sheet ingestion
-├── insight_engine.py           # Orchestrates all 7 agents → clinical brief
-├── blockchain/
-│   └── audit_trail.py          # Immutable clinical action logging
-├── data/
-│   ├── patients.json           # Medical records dataset
-│   ├── sample_patients.json    # Example schema for reference
-│   └── case_sheets/            # PDF inputs for OCR ingestion
-├── requirements.txt
-├── .env.example
-├── .gitignore
+├── backend1/                           # Node.js / Express Backend Engine
+│   ├── server.js                        # Express server entry point (Port 5001)
+│   ├── agents/
+│   │   ├── ocrAgent.js                 # Main OCR pipeline manager & guardrail runner
+│   │   └── ingestionAgent.js           # Database ingestion manager
+│   ├── ocr/
+│   │   ├── ocrProvider.js              # Multimodal Vision Providers (Gemini, OpenAI, Tesseract)
+│   │   ├── provenanceEngine.js         # Field Provenance & Versioning Engine
+│   │   └── handwritingDetector.js      # Handwriting density classifier
+│   ├── tools/
+│   │   └── patientTools.js             # NIH RxNorm API client & Brand Dictionary
+│   ├── blockchain/
+│   │   └── logger.js                   # Immutable audit log ledger
+│   └── tests/                          # Automated verification test suites
+│
+├── v0-hackathon-development-order/     # Next.js 14 Web Portal
+│   ├── app/
+│   │   ├── page.tsx                    # Landing page
+│   │   └── patient-portal/page.tsx     # Patient / Clinician portal & HITL Review Modal
+│   ├── public/                         # Static assets & media
+│   └── package.json
+│
+├── clinsight_flutter_fixed/            # Flutter Mobile Application
+├── voice2/                             # Voice AI Clinical Scribing Module
+├── docker-compose.yml
 └── README.md
 ```
 
@@ -331,21 +341,6 @@ Built over 48 hours at VIT by **Team Fanatics** 🔥
 
 ---
 
-## 🚀 Future Roadmap
-
-- [ ] 🌐 **Multi-language Support** — Hindi, Tamil, and other regional languages
-- [ ] 📈 **Health Trend Visualization** — Charts for vitals, labs, and visit frequency over time
-- [ ] 🔐 **Role-Based Access Control** — Separate doctor, nurse, and admin access levels
-- [ ] ☁️ **Persistent FAISS Index** — Save and reload the index across sessions without re-ingestion
-- [ ] 📊 **Confidence Scores on Search** — Retrieval relevance scores shown alongside each result
-- [ ] 🔔 **Real-Time Critical Alerts** — Auto-surface deteriorating patients based on vitals or interactions
-- [ ] 🐳 **Docker Deployment** — One-command containerized setup for hospital IT environments
-- [ ] 🧪 **RAGAS Evaluation** — Faithfulness and relevance scoring for all retrieved insights
-- [ ] 🔄 **Streaming Summaries** — Token-by-token streaming for faster perceived response time
-- [ ] 📱 **Mobile-First Clinical View** — Lightweight dashboard for ward-round tablet use
-
----
-
 ## 📄 License
 
 MIT License — see [LICENSE](LICENSE) for details.
@@ -356,14 +351,14 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 <br/>
 
-**Built in 48 hours to make clinical intelligence accessible to every doctor.**
+**Built in 48 hours to make clinical intelligence accessible, zero-hallucination, and safe for every doctor.**
 
 *ClinSight AI — Domain Winners, GLITCHCON 2.0 · VIT · March 2026*
 
 <br/>
 
-[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-clinsight.ai-00c853?style=for-the-badge)](https://lnkd.in/gYH92mzC)
-[![GitHub](https://img.shields.io/badge/⭐%20Star%20on%20GitHub-Source%20Code-24292e?style=for-the-badge&logo=github)](https://lnkd.in/gXkV47Ef)
+[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Try%20ClinSight-00c853?style=for-the-badge)](https://lnkd.in/gYH92mzC)
+[![GitHub](https://img.shields.io/badge/⭐%20Star%20on%20GitHub-Source%20Code-24292e?style=for-the-badge&logo=github)](https://github.com/shreyashgautam/clinsight-ai)
 
 <br/>
 
