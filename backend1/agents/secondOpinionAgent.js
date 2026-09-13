@@ -1,6 +1,6 @@
 const Anthropic = require('@anthropic-ai/sdk');
+const Groq = require('groq-sdk');
 const tools = require('../tools/patientTools');
-const sarvam = require('../services/sarvamClient');
 
 const SYSTEM_PROMPT = `You are the Second Opinion Agent at Kathir Memorial Hospital, Chennai.
 
@@ -55,18 +55,28 @@ async function runWithAnthropic(prompt, apiKey, modelOverride) {
   return { text: response.content[0].text, provider: 'anthropic', model };
 }
 
-// ---- Fallback: Sarvam-M ----------------------------------------------------
-async function runWithSarvam(prompt) {
-  const result = await sarvam.generateText(prompt, SYSTEM_PROMPT, 2048);
-  if (!result.success) throw new Error(result.error);
-  return { text: result.text, provider: 'sarvam-m', model: 'sarvam-m' };
+// ---- Fallback: Groq Llama-3.3-70B ------------------------------------------
+async function runWithGroq(prompt) {
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+  const completion = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: prompt },
+    ],
+    temperature: 0.1,
+    max_tokens: 2048,
+  });
+
+  const text = completion.choices[0]?.message?.content || '';
+  return { text, provider: 'groq', model: 'llama-3.3-70b-versatile' };
 }
 
 // ---- Main Agent ------------------------------------------------------------
 async function runSecondOpinionAgent(patientId, proposedDiagnosis, apiKey, modelOverride) {
   const patientData = tools.get_patient_case_sheet(patientId);
   const flags = tools.flag_clinical_pattern(patientId, null);
-  const brief = tools.generate_consultation_brief(patientId);
 
   const prompt = `Patient ID: ${patientId}
 Proposed Diagnosis by Physician: "${proposedDiagnosis}"
@@ -79,27 +89,26 @@ ${JSON.stringify(flags, null, 2)}
 
 Please analyse the complete history and return your second opinion in the specified JSON format.`;
 
-  // Try Anthropic Claude first
+  // Primary: Anthropic Claude
   if (process.env.ANTHROPIC_API_KEY || apiKey) {
     try {
       const { text, provider, model } = await runWithAnthropic(prompt, apiKey, modelOverride);
       console.log(`[SecondOpinionAgent] Response via ${provider} (${model})`);
       return { ...extractJSON(text), _provider: provider, _model: model };
     } catch (err) {
-      console.warn(`[SecondOpinionAgent] Anthropic failed (${err.message}), falling back to Sarvam-M...`);
+      console.warn(`[SecondOpinionAgent] Anthropic failed (${err.message}), falling back to Groq...`);
     }
   }
 
-  // Fallback: Sarvam-M
+  // Fallback: Groq Llama-3.3-70B
   try {
-    const { text, provider, model } = await runWithSarvam(prompt);
+    const { text, provider, model } = await runWithGroq(prompt);
     console.log(`[SecondOpinionAgent] Response via ${provider} (${model})`);
     return { ...extractJSON(text), _provider: provider, _model: model };
   } catch (err) {
     return {
-      error: 'Both Anthropic and Sarvam-M failed.',
-      anthropic_error: 'See above warning log',
-      sarvam_error: err.message,
+      error: 'Both Anthropic and Groq failed.',
+      groq_error: err.message,
     };
   }
 }
