@@ -41,6 +41,24 @@
       "department": "Spine & Orthopaedics",
       "specialisation": "Orthopaedics",
       "patients": []
+    },
+    {
+      "id": "D1296",
+      "name": "Dr. Test Doctor",
+      "email": "testdoctor@kathir.in",
+      "password": "password123",
+      "department": "Cardiology",
+      "specialisation": "Cardiology",
+      "patients": []
+    },
+    {
+      "id": "D7636",
+      "name": "Dr. Meghnamandawra",
+      "email": "meghnamandawra@gmail.com",
+      "role": "doctor",
+      "department": "General Medicine",
+      "patient_id": "D7636",
+      "password": "Meghna@123"
     }
   ],
   "patients": [
@@ -61,6 +79,15 @@
       "name": "Meghna Mandawra",
       "email": "meghnamandawra@gmail.com",
       "password": "Meghna",
+      "department": "General Medicine",
+      "specialisation": "General Practice",
+      "patients": []
+    },
+    {
+      "id": "P001",
+      "name": "Meghna Patient",
+      "email": "meghna@patient.in",
+      "password": "password123",
       "department": "General Medicine",
       "specialisation": "General Practice",
       "patients": []

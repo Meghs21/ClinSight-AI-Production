@@ -115,6 +115,20 @@ class GeminiVisionProvider extends OCRProvider {
 
     try {
       const ext = path.extname(filePath).toLowerCase();
+      const textExts = ['.txt', '.csv', '.json', '.html', '.md', '.log'];
+      if (ext && textExts.includes(ext)) {
+        const text = fs.readFileSync(filePath, 'utf8');
+        if (text && text.trim().length > 0) {
+          return {
+            text,
+            confidence: 1.0,
+            blocks: [{ text, confidence: 1.0 }],
+            provider: `${this.name}_TextDirect`,
+            version: 'text_direct_parser_v1.0',
+          };
+        }
+      }
+
       let mimeType = 'image/png';
       if (ext === '.jpg' || ext === '.jpeg') mimeType = 'image/jpeg';
 
@@ -126,7 +140,7 @@ class GeminiVisionProvider extends OCRProvider {
 
       const prompt = `Transcribe all text from this medical image including handwritten notes, doctor prescriptions, dosage instructions, and lab numbers exactly as written with full dosing frequencies and schedules. Return raw transcribed text only.`;
 
-      const modelsToTry = ['gemini-3.6-flash', 'gemini-2.0-flash'];
+      const modelsToTry = ['gemini-3.6-flash', 'gemini-1.5-flash'];
 
       for (const modelName of modelsToTry) {
         for (let attempt = 1; attempt <= 3; attempt++) {

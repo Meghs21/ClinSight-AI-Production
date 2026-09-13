@@ -210,8 +210,8 @@ async function register(req, res) {
         name: String(name).trim(),
         email: cleanEmail,
         password: password || 'doctor123',
-        department: department || 'General Medicine',
-        specialisation: department || 'General Practice',
+        department: assignedRole === 'doctor' ? (department || 'General Medicine') : undefined,
+        specialisation: assignedRole === 'doctor' ? (department || 'General Practice') : undefined,
         patients: [],
       };
 
@@ -230,7 +230,7 @@ async function register(req, res) {
       id: userId || `U${Date.now().toString().slice(-4)}`,
       name: String(name).trim(),
       email: cleanEmail,
-      department: department || 'General Medicine',
+      department: assignedRole === 'doctor' ? (department || 'General Medicine') : undefined,
       role: assignedRole,
       patient_id: assignedRole === 'patient' ? 'P001' : userId,
     };

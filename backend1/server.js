@@ -60,13 +60,13 @@ async function init() {
     if (err.code === 'EACCES' || err.code === 'EADDRINUSE') {
       console.warn(`⚠️ Port ${PORT} unavailable (${err.code}). Trying fallback port 5001...`);
       PORT = 5001;
-      server.listen(PORT, '127.0.0.1');
+      server.listen(PORT);
     } else {
       console.error('Server error:', err);
     }
   });
 
-  server.listen(PORT, '127.0.0.1', () => {
+  server.listen(PORT, () => {
     console.log(`\nKathir Memorial — Patient Intelligence Backend`);
     console.log(`Running on port ${PORT}`);
     console.log(`Frontend: ${process.env.FRONTEND_URL || 'http://localhost:3000'}\n`);

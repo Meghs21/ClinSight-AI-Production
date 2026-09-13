@@ -6,10 +6,11 @@ import { useRouter } from "next/navigation";
 import { BriefcaseMedical, Lock, Mail, Stethoscope, User, ArrowRight, CheckCircle2 } from "lucide-react";
 
 const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || "http://localhost:4000";
+  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || "http://localhost:5001";
 
 export default function DoctorRegisterPage() {
   const router = useRouter();
+  const [role, setRole]                     = useState<"doctor" | "patient">("doctor");
   const [name, setName]                     = useState("");
   const [department, setDepartment]         = useState("");
   const [email, setEmail]                   = useState("");
@@ -21,7 +22,10 @@ export default function DoctorRegisterPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (document.cookie.includes("medai_auth=1")) router.replace("/dashboard");
+    if (document.cookie.includes("medai_auth=1")) {
+      const storedRole = localStorage.getItem("medai_role");
+      router.replace(storedRole === "patient" ? "/patient-portal" : "/dashboard");
+    }
   }, [router]);
 
   const onSubmit = async (e: FormEvent) => {
@@ -33,14 +37,32 @@ export default function DoctorRegisterPage() {
       const res = await fetch(`${BACKEND_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "doctor", name, email, password, department, specialty: department }),
+        body: JSON.stringify({
+          role,
+          name,
+          email,
+          password,
+          department: role === "doctor" ? department : undefined,
+          specialty: role === "doctor" ? department : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Registration failed");
+      const assignedRole = data.role || data.user?.role || role;
       localStorage.setItem("medai_user", JSON.stringify(data.user));
-      localStorage.setItem("medai_role", "doctor");
-      document.cookie = "medai_auth=1; path=/; max-age=2592000; samesite=lax";
-      router.push("/dashboard");
+      localStorage.setItem("medai_role", assignedRole);
+      if (data.token) {
+        localStorage.setItem("medai_token", data.token);
+        document.cookie = `medai_auth=${data.token}; path=/; max-age=2592000; samesite=lax`;
+      } else {
+        document.cookie = "medai_auth=1; path=/; max-age=2592000; samesite=lax";
+      }
+
+      if (assignedRole === "patient") {
+        router.push("/patient-portal");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
@@ -51,9 +73,9 @@ export default function DoctorRegisterPage() {
   const pwMatch = confirmPassword.length > 0 && password === confirmPassword;
 
   const fields = [
-    { key: "name",    label: "Full Name",        type: "text",     placeholder: "Dr. Nandakumar",     icon: <User style={{ width: 15, height: 15 }} />,              value: name,            set: setName            },
-    { key: "dept",    label: "Department",        type: "text",     placeholder: "Diabetology",         icon: <BriefcaseMedical style={{ width: 15, height: 15 }} />, value: department,      set: setDepartment      },
-    { key: "email",   label: "Email Address",     type: "email",    placeholder: "doctor@medai.com",    icon: <Mail style={{ width: 15, height: 15 }} />,             value: email,           set: setEmail           },
+    { key: "name",    label: "Full Name",        type: "text",     placeholder: role === "doctor" ? "Dr. Nandakumar" : "Rajan Subramaniam",     icon: <User style={{ width: 15, height: 15 }} />,              value: name,            set: setName            },
+    ...(role === "doctor" ? [{ key: "dept", label: "Department", type: "text", placeholder: "Diabetology & Endocrinology", icon: <BriefcaseMedical style={{ width: 15, height: 15 }} />, value: department, set: setDepartment }] : []),
+    { key: "email",   label: "Email Address",     type: "email",    placeholder: role === "doctor" ? "doctor@medai.com" : "rajan@patient.in",    icon: <Mail style={{ width: 15, height: 15 }} />,             value: email,           set: setEmail           },
     { key: "pass",    label: "Password",          type: "password", placeholder: "••••••••",            icon: <Lock style={{ width: 15, height: 15 }} />,             value: password,        set: setPassword        },
     { key: "conf",    label: "Confirm Password",  type: "password", placeholder: "••••••••",            icon: <Lock style={{ width: 15, height: 15 }} />,             value: confirmPassword, set: setConfirmPassword },
   ];
@@ -275,11 +297,45 @@ export default function DoctorRegisterPage() {
 
             <div className="rg-badge">
               <div className="rg-badge-dot" />
-              Doctor Registration
+              {role === "doctor" ? "Doctor Registration" : "Patient Registration"}
             </div>
 
-            <h1 className="rg-title">Create your<br />doctor profile.</h1>
-            <p className="rg-sub">Fill in your details to set up your MedAI Pro account.</p>
+            <h1 className="rg-title">
+              {role === "doctor" ? <>Create your<br />doctor profile.</> : <>Create your<br />patient account.</>}
+            </h1>
+            <p className="rg-sub">
+              {role === "doctor" ? "Fill in your details to set up your MedAI Pro account." : "Fill in your details to access your patient health portal."}
+            </p>
+
+            {/* Role Switcher */}
+            <div style={{ display: "flex", gap: 6, padding: 4, borderRadius: 10, background: "#f1f5f9", marginBottom: 20 }}>
+              <button
+                type="button"
+                onClick={() => setRole("doctor")}
+                style={{
+                  flex: 1, padding: "8px 12px", border: "none", borderRadius: 8,
+                  fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.2s",
+                  background: role === "doctor" ? "#ffffff" : "transparent",
+                  color: role === "doctor" ? "#0f172a" : "#64748b",
+                  boxShadow: role === "doctor" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                }}
+              >
+                👨‍⚕️ Doctor
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole("patient")}
+                style={{
+                  flex: 1, padding: "8px 12px", border: "none", borderRadius: 8,
+                  fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.2s",
+                  background: role === "patient" ? "#ffffff" : "transparent",
+                  color: role === "patient" ? "#0f172a" : "#64748b",
+                  boxShadow: role === "patient" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                }}
+              >
+                👤 Patient
+              </button>
+            </div>
 
             <form onSubmit={onSubmit}>
               {fields.map((f) => {

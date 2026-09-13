@@ -18,9 +18,9 @@ if (process.env.DATABASE_URL) {
 }
 
 async function getEmbedding(text) {
-  if (process.env.OPENAI_API_KEY) {
+  if (process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('your_openai_api_key')) {
     try {
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 3000 });
       const res = await openai.embeddings.create({
         model: 'text-embedding-3-small',
         input: text,

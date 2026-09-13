@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Lock, Mail, Stethoscope, ArrowRight } from "lucide-react";
 
 const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || "http://localhost:4000";
+  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || "http://localhost:5001";
 
 export default function DoctorLoginPage() {
   const router = useRouter();
