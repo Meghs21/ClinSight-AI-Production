@@ -1,5 +1,6 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const tools = require('../tools/patientTools');
+const sarvam = require('../services/sarvamClient');
 
 const SYSTEM_PROMPT = `You are the Second Opinion Agent at Kathir Memorial Hospital, Chennai.
 
@@ -28,11 +29,41 @@ Rules:
 - Be objective — if evidence is mixed, say so
 - Confidence score should reflect weight of evidence, not just count`;
 
-async function runSecondOpinionAgent(patientId, proposedDiagnosis, apiKey, modelOverride) {
+// ---- Shared JSON extractor --------------------------------------------------
+function extractJSON(text) {
+  try {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    return { error: 'Could not parse response', raw: text };
+  } catch (e) {
+    return { error: 'Parse error', raw: text };
+  }
+}
+
+// ---- Primary: Anthropic Claude ---------------------------------------------
+async function runWithAnthropic(prompt, apiKey, modelOverride) {
   const client = new Anthropic({ apiKey: apiKey || process.env.ANTHROPIC_API_KEY });
   const model = modelOverride || 'claude-haiku-4-5-20251001';
 
-  // Get full patient data first
+  const response = await client.messages.create({
+    model,
+    max_tokens: 2048,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  return { text: response.content[0].text, provider: 'anthropic', model };
+}
+
+// ---- Fallback: Sarvam-M ----------------------------------------------------
+async function runWithSarvam(prompt) {
+  const result = await sarvam.generateText(prompt, SYSTEM_PROMPT, 2048);
+  if (!result.success) throw new Error(result.error);
+  return { text: result.text, provider: 'sarvam-m', model: 'sarvam-m' };
+}
+
+// ---- Main Agent ------------------------------------------------------------
+async function runSecondOpinionAgent(patientId, proposedDiagnosis, apiKey, modelOverride) {
   const patientData = tools.get_patient_case_sheet(patientId);
   const flags = tools.flag_clinical_pattern(patientId, null);
   const brief = tools.generate_consultation_brief(patientId);
@@ -48,22 +79,28 @@ ${JSON.stringify(flags, null, 2)}
 
 Please analyse the complete history and return your second opinion in the specified JSON format.`;
 
-  const response = await client.messages.create({
-    model,
-    max_tokens: 2048,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: prompt }]
-  });
+  // Try Anthropic Claude first
+  if (process.env.ANTHROPIC_API_KEY || apiKey) {
+    try {
+      const { text, provider, model } = await runWithAnthropic(prompt, apiKey, modelOverride);
+      console.log(`[SecondOpinionAgent] Response via ${provider} (${model})`);
+      return { ...extractJSON(text), _provider: provider, _model: model };
+    } catch (err) {
+      console.warn(`[SecondOpinionAgent] Anthropic failed (${err.message}), falling back to Sarvam-M...`);
+    }
+  }
 
-  const text = response.content[0].text;
-
+  // Fallback: Sarvam-M
   try {
-    // Extract JSON from response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) return JSON.parse(jsonMatch[0]);
-    return { error: 'Could not parse response', raw: text };
-  } catch (e) {
-    return { error: 'Parse error', raw: text };
+    const { text, provider, model } = await runWithSarvam(prompt);
+    console.log(`[SecondOpinionAgent] Response via ${provider} (${model})`);
+    return { ...extractJSON(text), _provider: provider, _model: model };
+  } catch (err) {
+    return {
+      error: 'Both Anthropic and Sarvam-M failed.',
+      anthropic_error: 'See above warning log',
+      sarvam_error: err.message,
+    };
   }
 }
 

@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 /**
  * sarvamClient.js
@@ -180,4 +180,55 @@ async function voiceToEnglish(audioInput, languageCode = 'ta-IN') {
   };
 }
 
-module.exports = { speechToText, translate, voiceToEnglish, SUPPORTED_LANGUAGES };
+// ---- 4. Sarvam-M: LLM Text Generation (OpenAI-compatible) ------------------
+
+/**
+ * Calls Sarvam-M — Sarvam's multilingual reasoning LLM.
+ * Used as a fallback when Anthropic Claude is unavailable.
+ * Sarvam-M uses an OpenAI-compatible /v1/chat/completions endpoint.
+ *
+ * @param {string} prompt        - User prompt
+ * @param {string} systemPrompt  - System instruction
+ * @param {number} maxTokens     - Max output tokens (default: 2048)
+ * @returns {Promise<{ success: boolean, text: string, model: string }>}
+ */
+async function generateText(prompt, systemPrompt = '', maxTokens = 2048) {
+  checkApiKey();
+
+  try {
+    const messages = [];
+    if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
+    messages.push({ role: 'user', content: prompt });
+
+    const response = await fetch('https://api.sarvam.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'api-subscription-key': SARVAM_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'sarvam-m',
+        messages,
+        max_tokens: maxTokens,
+        temperature: 0.2,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error('Sarvam-M API error ' + response.status + ': ' + errorText);
+    }
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || '';
+
+    console.log('[Sarvam-M] Generated ' + text.length + ' chars via sarvam-m');
+
+    return { success: true, text, model: 'sarvam-m', provider: 'sarvam' };
+  } catch (err) {
+    console.error('[Sarvam-M Error]:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+module.exports = { speechToText, translate, voiceToEnglish, generateText, SUPPORTED_LANGUAGES };
