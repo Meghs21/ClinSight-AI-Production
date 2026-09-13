@@ -5,6 +5,7 @@ const helmet = require('helmet');
 
 const routes = require('./routes/index');
 const whatsappRoute = require('./routes/whatsapp');
+const sarvamRoute = require('./routes/sarvam');
 const { authenticateToken } = require('./middleware/authMiddleware');
 
 function createApp(io) {
@@ -28,6 +29,7 @@ function createApp(io) {
 
   app.use('/api', authenticateToken, routes);
   app.use('/api/whatsapp', whatsappRoute);
+  app.use('/api/sarvam', sarvamRoute);  // Sarvam AI: Tamil Voice Intake + Translation
 
   app.get('/', (req, res) =>
     res.json({
