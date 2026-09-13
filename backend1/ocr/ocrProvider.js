@@ -176,32 +176,42 @@ class GeminiVisionProvider extends OCRProvider {
         }
       }
 
-      console.warn(`[${this.name}] All Gemini Vision models failed. Attempting Sarvam-M text extraction fallback...`);
-      try {
-        const sarvam = require('../services/sarvamClient');
-        const rawText = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8').slice(0, 8000) : '';
-        if (rawText) {
-          const result = await sarvam.generateText(
-            `Transcribe and structure this raw medical text extracted from a clinical document. Extract patient name, diagnosis, medications with dosage and frequency, symptoms, and lab values:\n\n${rawText}`,
-            'You are an expert clinical OCR transcription engine. Output clean structured medical text only.',
-            1024
-          );
-          if (result.success && result.text) {
-            console.log(`[${this.name}] Sarvam-M text extraction fallback succeeded.`);
-            return {
-              text: result.text,
-              confidence: 0.75,
-              blocks: [{ text: result.text, confidence: 0.75 }],
-              provider: 'SarvamM_TextFallback',
-              version: 'sarvam_m_v1.0_ocr_fallback',
-            };
+      console.warn(`[${this.name}] All Gemini Vision models failed. Checking if Sarvam-M text fallback is applicable...`);
+
+      // NOTE: Sarvam-M is text-only (no multimodal vision support).
+      // It can only help if the file is a readable text document, NOT a PNG/JPG image.
+      const imageExts = ['.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp', '.gif'];
+      const isImageFile = imageExts.includes(path.extname(filePath).toLowerCase());
+
+      if (!isImageFile) {
+        try {
+          const sarvam = require('../services/sarvamClient');
+          const rawText = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8').slice(0, 8000) : '';
+          if (rawText && rawText.trim().length > 20) {
+            const result = await sarvam.generateText(
+              `Transcribe and structure this raw medical text from a clinical document. Extract patient name, diagnosis, medications with dosage and frequency, symptoms, and lab values:\n\n${rawText}`,
+              'You are an expert clinical text structuring engine. Output clean structured medical text only.',
+              1024
+            );
+            if (result.success && result.text) {
+              console.log(`[${this.name}] Sarvam-M text structuring fallback succeeded.`);
+              return {
+                text: result.text,
+                confidence: 0.75,
+                blocks: [{ text: result.text, confidence: 0.75 }],
+                provider: 'SarvamM_TextFallback',
+                version: 'sarvam_m_v1.0_text_only_fallback',
+              };
+            }
           }
+        } catch (sarvamErr) {
+          console.warn(`[${this.name}] Sarvam-M fallback failed: ${sarvamErr.message}`);
         }
-      } catch (sarvamErr) {
-        console.warn(`[${this.name}] Sarvam-M fallback also failed: ${sarvamErr.message}`);
+      } else {
+        console.warn(`[${this.name}] Image file detected — Sarvam-M has no vision capability. Falling straight to Tesseract.`);
       }
 
-      console.warn(`[${this.name}] All vision providers failed. Delegating to Tesseract...`);
+      console.warn(`[${this.name}] All providers failed. Delegating to Tesseract (local offline fallback)...`);
       const fallback = new TesseractProvider();
       return fallback.processDocument(filePath);
     } catch (err) {
