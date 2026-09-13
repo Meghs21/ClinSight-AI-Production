@@ -140,7 +140,7 @@ class GeminiVisionProvider extends OCRProvider {
 
       const prompt = `Transcribe all text from this medical image including handwritten notes, doctor prescriptions, dosage instructions, and lab numbers exactly as written with full dosing frequencies and schedules. Return raw transcribed text only.`;
 
-      const modelsToTry = ['gemini-3.6-flash', 'gemini-1.5-flash'];
+      const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-pro'];
 
       for (const modelName of modelsToTry) {
         for (let attempt = 1; attempt <= 3; attempt++) {

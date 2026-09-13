@@ -6,9 +6,9 @@ services:
     container_name: clinsight-postgres
     restart: always
     environment:
-      POSTGRES_DB: clinsight
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: clinsight_db_password_2026
+      POSTGRES_DB: ${POSTGRES_DB:-clinsight}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -22,12 +22,12 @@ services:
     container_name: clinsight-backend
     restart: always
     ports:
-      - "4000:4000"
+      - "${PORT:-4000}:${PORT:-4000}"
     environment:
-      - PORT=4000
-      - DATABASE_URL=postgresql://postgres:clinsight_db_password_2026@postgres:5432/clinsight
-      - JWT_SECRET=clinsight_production_jwt_secret_key_2026
-      - ALLOW_ANONYMOUS=false
+      - PORT=${PORT:-4000}
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - ALLOW_ANONYMOUS=${ALLOW_ANONYMOUS:-false}
     depends_on:
       - postgres
 
@@ -40,7 +40,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:4000
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:4000}
     depends_on:
       - backend
 

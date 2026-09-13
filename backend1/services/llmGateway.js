@@ -32,12 +32,12 @@ class LLMGateway {
       if (genAI) {
         try {
           const m = genAI.getGenerativeModel({
-            model: model || 'gemini-3.6-flash',
+            model: model || 'gemini-1.5-flash',
             systemInstruction: systemPrompt || undefined,
           });
           const res = await m.generateContent(prompt);
           const text = res.response?.text();
-          if (text) return { text, provider: 'gemini', model: model || 'gemini-3.6-flash' };
+          if (text) return { text, provider: 'gemini', model: model || 'gemini-1.5-flash' };
         } catch (err) {
           console.warn('Gemini gateway call failed, attempting fallback:', err.message);
         }
@@ -49,18 +49,18 @@ class LLMGateway {
       const groq = this.getGroqClient(apiKey);
       if (groq) {
         try {
-          console.log(`🤖 [LLM GATEWAY CALL] Groq API | Model: ${model || 'groq/compound'} | Temperature: 0.0`);
+          console.log(`🤖 [LLM GATEWAY CALL] Groq API | Model: ${model || 'llama-3.3-70b-versatile'} | Temperature: 0.0`);
           const messages = [];
           if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
           messages.push({ role: 'user', content: prompt });
 
           const res = await groq.chat.completions.create({
-            model: model || 'groq/compound',
+            model: model || 'llama-3.3-70b-versatile',
             messages,
             temperature: 0.0,
           });
           const text = res.choices[0]?.message?.content;
-          if (text) return { text, provider: 'groq', model: model || 'groq/compound' };
+          if (text) return { text, provider: 'groq', model: model || 'llama-3.3-70b-versatile' };
         } catch (err) {
           console.warn('⚠️ [LLM GATEWAY WARNING] Groq call failed, falling back:', err.message);
         }
