@@ -2,6 +2,21 @@ const auditRepo = require('../repositories/auditRepository');
 
 let io = null;
 
+function ensureGenesis() {
+  if (chain.length === 0) {
+    chain.push({
+      index: 0,
+      timestamp: new Date().toISOString(),
+      action: 'CHAIN_INITIALIZED',
+      actorId: 'SYSTEM',
+      patientId: null,
+      details: 'Kathir Memorial Hospital — Patient Intelligence Blockchain Audit Ledger initialized',
+      previousHash: '0000000000000000',
+      hash: crypto.createHash('sha256').update('genesis').digest('hex')
+    });
+  }
+}
+
 function init(socketIo) {
   io = socketIo;
   auditRepo.getChain(); // Ensure persistent storage initialized
