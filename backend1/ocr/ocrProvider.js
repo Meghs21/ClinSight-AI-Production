@@ -176,83 +176,36 @@ class GeminiVisionProvider extends OCRProvider {
         }
       }
 
-      console.warn(`[${this.name}] All Gemini Vision models failed. Attempting secondary OpenAI Vision failover provider...`);
-      if (process.env.OPENAI_API_KEY) {
-        const secondaryVision = new OpenAIVisionProvider();
-        return secondaryVision.processDocument(filePath);
+      console.warn(`[${this.name}] All Gemini Vision models failed. Attempting Sarvam-M text extraction fallback...`);
+      try {
+        const sarvam = require('../services/sarvamClient');
+        const rawText = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8').slice(0, 8000) : '';
+        if (rawText) {
+          const result = await sarvam.generateText(
+            `Transcribe and structure this raw medical text extracted from a clinical document. Extract patient name, diagnosis, medications with dosage and frequency, symptoms, and lab values:\n\n${rawText}`,
+            'You are an expert clinical OCR transcription engine. Output clean structured medical text only.',
+            1024
+          );
+          if (result.success && result.text) {
+            console.log(`[${this.name}] Sarvam-M text extraction fallback succeeded.`);
+            return {
+              text: result.text,
+              confidence: 0.75,
+              blocks: [{ text: result.text, confidence: 0.75 }],
+              provider: 'SarvamM_TextFallback',
+              version: 'sarvam_m_v1.0_ocr_fallback',
+            };
+          }
+        }
+      } catch (sarvamErr) {
+        console.warn(`[${this.name}] Sarvam-M fallback also failed: ${sarvamErr.message}`);
       }
 
-      console.warn(`[${this.name}] No secondary vision provider available. Delegating to Tesseract fallback...`);
+      console.warn(`[${this.name}] All vision providers failed. Delegating to Tesseract...`);
       const fallback = new TesseractProvider();
       return fallback.processDocument(filePath);
     } catch (err) {
       console.warn(`[${this.name}] Gemini Vision error:`, err.message);
-      if (process.env.OPENAI_API_KEY) {
-        const secondaryVision = new OpenAIVisionProvider();
-        return secondaryVision.processDocument(filePath);
-      }
-      const fallback = new TesseractProvider();
-      return fallback.processDocument(filePath);
-    }
-  }
-}
-
-class OpenAIVisionProvider extends OCRProvider {
-  constructor() {
-    super('OpenAIVisionMultimodalOCR');
-    this.apiKey = process.env.OPENAI_API_KEY;
-  }
-
-  async processDocument(filePath) {
-    if (!this.apiKey) {
-      console.warn(`[${this.name}] OPENAI_API_KEY missing, delegating to TesseractProvider...`);
-      const fallback = new TesseractProvider();
-      return fallback.processDocument(filePath);
-    }
-
-    try {
-      const ext = path.extname(filePath).toLowerCase();
-      let mimeType = 'image/png';
-      if (ext === '.jpg' || ext === '.jpeg') mimeType = 'image/jpeg';
-
-      const fileBuffer = fs.readFileSync(filePath);
-      const base64Data = fileBuffer.toString('base64');
-      const dataUrl = `data:${mimeType};base64,${base64Data}`;
-
-      const OpenAI = require('openai');
-      const openai = new OpenAI({ apiKey: this.apiKey });
-
-      const res = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'Transcribe all text from this medical image including handwritten notes, doctor prescriptions, dosage instructions, and lab numbers exactly as written with full dosing frequencies and schedules. Return raw transcribed text only.',
-              },
-              {
-                type: 'image_url',
-                image_url: { url: dataUrl },
-              },
-            ],
-          },
-        ],
-        temperature: 0.0,
-      });
-
-      const text = res.choices?.[0]?.message?.content || '';
-
-      return {
-        text: text.trim(),
-        confidence: 0.98,
-        blocks: [{ text, confidence: 0.98 }],
-        provider: this.name,
-        version: 'openai_gpt4o_mini_vision_v1.0',
-      };
-    } catch (err) {
-      console.warn(`[${this.name}] OpenAI Vision failed, delegating to Tesseract:`, err.message);
       const fallback = new TesseractProvider();
       return fallback.processDocument(filePath);
     }
