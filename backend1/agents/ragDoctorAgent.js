@@ -387,14 +387,9 @@ Instructions:
       }
     }
   } else if (explicitNameInQuery) {
-<<<<<<< HEAD
     // Only switch context if explicit name matches a real patient
     const resolved = await resolvePatientIdByName(explicitNameInQuery).catch(() => null);
     if (resolved?.patient_id) {
-=======
-    const resolved = await resolvePatientIdByName(explicitNameInQuery);
-    if (resolved?.patient_id && resolved.patient_id !== effectivePatientId) {
->>>>>>> origin/main
       effectivePatientId = resolved.patient_id;
     }
   }

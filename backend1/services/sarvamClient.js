@@ -44,7 +44,7 @@ async function speechToText(audioInput, languageCode = 'ta-IN') {
   checkApiKey();
 
   if (!SUPPORTED_LANGUAGES[languageCode]) {
-    return { success: false, error: Unsupported language code:  };
+    return { success: false, error: `Unsupported language code: ${languageCode}` };
   }
 
   try {

@@ -23,6 +23,7 @@ const storage = multer.diskStorage({
   },
 });
 const upload = multer({ storage });
+const uploadAny = multer({ storage }); // alias used by OCR and agent routes
 const DATA_DIR = path.join(__dirname, '../data');
 const DRUG_INTERACTIONS_FILE = path.join(DATA_DIR, 'drug_interactions.json');
 const defaultDatasetDir = path.join(__dirname, '../dataset_output');
@@ -87,8 +88,7 @@ router.get('/blockchain/chain', (req, res) => {
   res.json({ chain: blockchain.getChain(), verification: blockchain.verifyChain() });
 });
 
-<<<<<<< HEAD
-=======
+
 router.post('/auth/register', (req, res) => {
   const { role, email, password, name } = req.body || {};
   if (!role || !email || !password || !name) {
@@ -693,7 +693,7 @@ router.post('/referral', async (req, res) => {
 
 router.get('/blockchain/chain', (req, res) => res.json(blockchain.getChain()));
 router.get('/blockchain/verify', (req, res) => res.json(blockchain.verifyChain()));
->>>>>>> origin/main
+
 router.get('/blockchain/export', (req, res) => {
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="audit_ledger.csv"');
