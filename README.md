@@ -185,7 +185,7 @@ flowchart TD
 
     subgraph Generation ["5. Grounded LLM & Provenance"]
         Hybrid --> Grounding["ragDoctorAgent.js<br/>8 Clinical Grounding & Hallucination Reduction Directives"]
-        Grounding --> LLM["Groq LLaMA 3.3 70B Versatile"]
+        Grounding --> LLM["Groq Clinical LLM Engine<br/>(Sub-second inference & grounded synthesis)"]
         LLM --> Out["Grounded Answer + rag_hits (Dates, Scores, Snippets)"]
     end
 
@@ -219,6 +219,9 @@ flowchart TD
 cd backend1
 node tests/test_rag_retrieval_eval.js
 
+# Run the overall multi-agent clinical regression suite (9 agents)
+node tests/test_all_agents.js
+
 # Run the end-to-end live API test suite
 node tests/test_api_endpoints.js
 ```
@@ -241,7 +244,7 @@ ClinSight AI features a full-stack, enterprise-grade architecture across web, mo
 - **Primary Vision (Tier 1)**: Google Gemini 3.6 Flash / 2.0 Flash via `@google/genai` SDK.
 - **Failover Vision (Tier 2)**: OpenAI GPT-4o Vision via `openai` SDK.
 - **Offline OCR (Tier 3)**: Tesseract.js fallback engine.
-- **Semantic RAG Vector Search**: Python 3.10+, [FAISS](https://faiss.ai/) vector index, [SentenceTransformers](https://sbert.net/) `all-MiniLM-L6-v2`.
+- **Semantic RAG Vector Search**: Dual-Tier Hybrid Engine: PostgreSQL [pgvector](https://github.com/pgvector/pgvector) + embedded [Vectra](https://github.com/Stevenic/vectra) local fallback with deterministic temporal & entity re-ranking.
 - **Drug Verification**: NIH NLM RxNorm REST API + Indian Pharmacopoeia Brand Dictionary.
 
 ### 4. Database, Security & Audit
@@ -281,24 +284,24 @@ npm install
 Create a `.env` file in `backend1/`:
 
 ```env
-PORT=5001
+PORT=4000
 GROQ_API_KEY=your_groq_api_key_here
+GROQ_MODEL=openai/gpt-oss-20b
+ALLOW_ANONYMOUS=true
 GEMINI_API_KEY=your_gemini_api_key_here
 OPENAI_API_KEY=your_openai_api_key_here
 OCR_PROVIDER=gemini
 
-SUPABASE_URL=https://vfwotpdkxzullsdbrfpn.supabase.co
-SUPABASE_ANON_KEY=sb_publishable_UchIxEVAjG2Fm1jypGENZQ_A1gC912-
-NEXT_PUBLIC_SUPABASE_URL=https://vfwotpdkxzullsdbrfpn.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_UchIxEVAjG2Fm1jypGENZQ_A1gC912-
-DATABASE_URL=postgresql://postgres:8ty%40KCjbrVVPZ8n@db.vfwotpdkxzullsdbrfpn.supabase.co:5432/postgres
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_supabase_anon_key_here
+DATABASE_URL=postgresql://postgres:your_password@db.your-project.supabase.co:5432/postgres
 ```
 
 Start the backend server:
 
 ```bash
 npm start
-# Server runs on http://127.0.0.1:5001
+# Server runs on http://localhost:4000
 ```
 
 ---
@@ -315,10 +318,10 @@ npm install
 Create a `.env.local` file in `v0-hackathon-development-order/`:
 
 ```env
-NEXT_PUBLIC_BACKEND_URL=http://localhost:5001
-NEXT_PUBLIC_API_URL=http://localhost:5001
-NEXT_PUBLIC_SUPABASE_URL=https://vfwotpdkxzullsdbrfpn.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_UchIxEVAjG2Fm1jypGENZQ_A1gC912-
+NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
+NEXT_PUBLIC_API_URL=http://localhost:4000
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 ```
 
 Start the Next.js frontend:
@@ -342,21 +345,30 @@ flutter run
 
 ## 🧪 Running Automated Verification Test Suites
 
-ClinSight AI includes automated test suites to verify vision OCR, RxNorm validation, and weekly dosing guardrails:
+ClinSight AI includes rigorous automated test suites verifying vision OCR, clinical guardrails, multi-agent pipelines, and RAG retrieval:
 
 ```bash
 cd backend1
 
-# 1. Test Direct Gemini 3.6 Flash Vision Ingestion
+# 1. Test Overall Multi-Agent Clinical Suite (9 Specialized Agents)
+node tests/test_all_agents.js
+
+# 2. Test Hybrid Clinical RAG Retrieval Engine (9/9 Scenarios Benchmark)
+node tests/test_rag_retrieval_eval.js
+
+# 3. Test Live API Endpoints (POST /api/agent/query)
+node tests/test_api_endpoints.js
+
+# 4. Test Direct Gemini 3.6 Flash Vision Ingestion
 node tests/test_real_prescription_gemini36.js
 
-# 2. Test Multi-Cloud Vision Failover Pipeline
+# 5. Test Multi-Cloud Vision Failover Pipeline
 node tests/test_verify_gemini_direct_execution.js
 
-# 3. Test Methotrexate / Folitrax Weekly Dosing Safety Guardrail
+# 6. Test Methotrexate / Folitrax Weekly Dosing Safety Guardrail
 node tests/test_weekly_dosing_guardrail.js
 
-# 4. Test RxNorm API Hallucination Guardrail & Brand Dictionary
+# 7. Test RxNorm API Hallucination Guardrail & Brand Dictionary
 node tests/test_rxnorm_hallucination_guardrail.js
 ```
 
@@ -367,11 +379,23 @@ node tests/test_rxnorm_hallucination_guardrail.js
 ```
 clinsight-ai/
 │
-├── backend1/                           # Node.js / Express Backend Engine
-│   ├── server.js                        # Express server entry point (Port 5001)
-│   ├── agents/
-│   │   ├── ocrAgent.js                 # Main OCR pipeline manager & guardrail runner
-│   │   └── ingestionAgent.js           # Database ingestion manager
+├── backend1/                           # Node.js / Express Backend Engine (Port 4000)
+│   ├── server.js                        # Express server entry point & WebSocket hub
+│   ├── app.js                           # App factory, security middleware, rate limiters
+│   ├── agents/                          # Specialized Multi-Agent Intelligence Suite
+│   │   ├── ragDoctorAgent.js           # Grounded clinical Q&A & consultation briefs
+│   │   ├── triageAgent.js              # Acuity scoring & specialty department routing
+│   │   ├── secondOpinionAgent.js       # Differential diagnosis validator & risk assessment
+│   │   ├── receptionistAgent.js        # Hospital navigation & non-clinical queries
+│   │   ├── nutritionAgent.js           # Chronic condition-specific dietary plans
+│   │   ├── ocrAgent.js                 # Multimodal vision & prescription OCR pipeline
+│   │   ├── ingestionAgent.js           # Structured EHR extraction & database commit
+│   │   ├── transferAgent.js            # Inter-departmental transfer packet creation
+│   │   └── voiceAgent.js               # Hands-free spoken clinical briefing
+│   ├── rag/                             # Hybrid Clinical RAG & Retrieval Engine
+│   │   ├── vectorStore.js              # Dual-tier vector store (pgvector + Vectra)
+│   │   ├── queryParser.js              # Temporal (dates/ranges) & entity extraction
+│   │   └── patientContext.js           # Patient bundle hydration & formatting
 │   ├── ocr/
 │   │   ├── ocrProvider.js              # Multimodal Vision Providers (Gemini, OpenAI, Tesseract)
 │   │   ├── provenanceEngine.js         # Field Provenance & Versioning Engine
@@ -385,7 +409,11 @@ clinsight-ai/
 ├── v0-hackathon-development-order/     # Next.js 14 Web Portal
 │   ├── app/
 │   │   ├── page.tsx                    # Landing page
+│   │   ├── (dashboard)/assistant/      # AI Doctor Assistant with RAG Provenance UI
 │   │   └── patient-portal/page.tsx     # Patient / Clinician portal & HITL Review Modal
+│   ├── lib/
+│   │   ├── patient-portal.ts           # RAG hit interfaces & query executor
+│   │   └── backend-api.ts              # API client configured to http://localhost:4000
 │   ├── public/                         # Static assets & media
 │   └── package.json
 │
