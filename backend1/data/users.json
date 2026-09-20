@@ -59,6 +59,15 @@
       "department": "General Medicine",
       "patient_id": "D7636",
       "password": "Meghna@123"
+    },
+    {
+      "id": "D3150",
+      "name": "Dr. X",
+      "email": "x@x.com",
+      "password": "$2b$12$yyrbahvnxB23dnj1ta4dpOgvMgifJzYOhzllTPGypOBNj9SnGAolq",
+      "role": "doctor",
+      "department": "General Medicine",
+      "patient_id": "D3150"
     }
   ],
   "patients": [

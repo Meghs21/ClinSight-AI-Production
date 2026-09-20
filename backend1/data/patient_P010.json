@@ -1,9 +1,10 @@
 {
   "id": "P010",
-  "name": "Unknown",
-  "age": null,
-  "gender": null,
-  "bloodGroup": null,
+  "patient_id": "P010",
+  "name": "Arjunan Krishnaswamy",
+  "age": 60,
+  "gender": "Male",
+  "bloodGroup": "B+",
   "primaryDiagnosis": [
     "Hypertension",
     "Hypertension (HTN)",

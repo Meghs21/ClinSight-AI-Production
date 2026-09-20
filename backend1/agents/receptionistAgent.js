@@ -35,11 +35,12 @@ RULES:
 5. For appointment booking — direct to Patient Portal or call the hospital number.
 6. You can describe hospital services, departments, and facilities.`;
 
-async function runReceptionist(userMessage, conversationHistory, apiKey) {
+async function runReceptionist(userMessage, conversationHistory = [], apiKey) {
   const client = new Groq({ apiKey: apiKey || process.env.GROQ_API_KEY });
 
+  const history = Array.isArray(conversationHistory) ? conversationHistory : [];
   const messages = [
-    ...conversationHistory.slice(-10), // Keep last 10 messages for context
+    ...history.slice(-10), // Keep last 10 messages for context
     { role: 'user', content: userMessage }
   ];
 

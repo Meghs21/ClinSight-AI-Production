@@ -3,10 +3,16 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://vfwotpdkxzullsdbrfpn.supabase.co';
-const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_UchIxEVAjG2Fm1jypGENZQ_A1gC912-';
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!url || !key) {
+  console.error('❌ SUPABASE_URL and SUPABASE_ANON_KEY must be set in backend1/.env');
+  process.exit(1);
+}
 
 const supabase = createClient(url, key);
+
 
 async function seedFullLiveSupabase() {
   console.log('====================================================');

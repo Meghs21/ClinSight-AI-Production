@@ -43,17 +43,26 @@ Age/Gender: ${bundle.patient.age} / ${bundle.patient.gender}
 Diagnoses: ${(bundle.patient.diagnosis || []).join(', ')}
 Meds: ${(bundle.medications || []).map((m) => `${m.drug} ${m.dose}`).join(', ')}`;
 
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.1-8b-instant',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Context:\n${contextText}\n\nDoctor Voice Query: ${query}` },
-      ],
-      temperature: 0.3,
-      max_tokens: 500,
-    });
-
-    const response = completion.choices[0]?.message?.content || 'No response generated.';
+    let response = '';
+    try {
+      const modelName = process.env.GROQ_MODEL || 'groq/compound-mini';
+      const completion = await groq.chat.completions.create({
+        model: modelName,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Context:\n${contextText}\n\nDoctor Voice Query: ${query}` },
+        ],
+        temperature: 0.3,
+        max_tokens: 500,
+      });
+      response = completion.choices[0]?.message?.content || 'No response generated.';
+    } catch (apiErr) {
+      console.warn(`[VoiceAgent] Groq error (${apiErr.message}), falling back to clinical summary.`);
+      const p = bundle?.patient || {};
+      const visits = bundle?.visits || [];
+      const meds = bundle?.medications || [];
+      response = `[Voice Clinical Summary] Patient ${p.name || pId} (${p.age || 'NA'}y/${p.gender || 'NA'}). Diagnoses: ${(p.diagnosis || []).join(', ') || 'None'}. Active meds: ${meds.map(m => `${m.drug} ${m.dose}`).join(', ') || 'None'}. Last visit: ${visits[0]?.date || 'NA'}. Query: "${query}".`;
+    }
 
     return {
       success: true,

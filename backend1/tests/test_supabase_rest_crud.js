@@ -7,8 +7,8 @@ async function testSupabaseRest() {
   console.log('⚡ TESTING SUPABASE REST API TABLE ACCESS (HTTPS 443)');
   console.log('====================================================\n');
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://vfwotpdkxzullsdbrfpn.supabase.co';
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_UchIxEVAjG2Fm1jypGENZQ_A1gC912-';
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   const supabase = createClient(url, key);
 

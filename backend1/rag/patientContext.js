@@ -243,20 +243,15 @@ function extractLikelyPatientName(query) {
     const m = text.match(p);
     if (!m?.[1]) continue;
     const cleaned = m[1]
-      .replace(/\b(takes?|take|taking|medications?|medicine|history|details?|issues?|problem|problems|disease|diagnosis|all)\b/gi, ' ')
+      .replace(/\b(takes?|take|taking|medications?|medicine|history|details?|issues?|problem|problems|disease|diagnosis|all|creatinine|hba1c|egfr|bp|blood|pressure|glucose|lab|labs|tests?|results?|level|levels|value|readings?|visit|visits|consult|consultation|findings?|vitals?)\b/gi, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-    if (cleaned) return cleaned;
-  }
-  // Fallback: pick a trailing name-like token only for person-oriented questions.
-  const personIntent = /\b(about|for|by|does|tell me|medicine|medications|history|issues|problem|disease|diagnosis)\b/i.test(text);
-  if (personIntent) {
-    const fallback = text
-      .replace(/[^a-zA-Z\s]/g, ' ')
-      .split(/\s+/)
-      .filter(Boolean)
-      .filter((w) => !/^(what|which|who|tell|me|about|medicine|medications|does|do|for|of|by|taken|take|history|all|the|is|are|please)$/i.test(w));
-    if (fallback.length) return fallback[fallback.length - 1];
+    const tokens = cleaned.split(/\s+/).filter(Boolean);
+    const stopWords = new Set(['the', 'a', 'an', 'on', 'in', 'at', 'to', 'for', 'is', 'was', 'were', 'has', 'have', 'had', 'patient', 'patients', 'what', 'which', 'who', 'show', 'give', 'tell', 'me', 'how', 'when', 'why']);
+    const nonStopTokens = tokens.filter((t) => !stopWords.has(t.toLowerCase()));
+    if (nonStopTokens.length > 0 && nonStopTokens.join(' ').length >= 3) {
+      return nonStopTokens.join(' ');
+    }
   }
   return null;
 }
@@ -338,7 +333,14 @@ function getFromLocalFiles(patientId) {
     if (p.labResults) {
       Object.entries(p.labResults).forEach(([test, rows]) => {
         (rows || []).forEach((r) => {
-          labs.push({ test, value: r.value || r.systolic, unit: r.unit || '', status: r.status || '', date: r.date });
+          labs.push({
+            test,
+            value: r.value !== undefined ? r.value : r.systolic,
+            unit: r.unit || '',
+            status: r.status || '',
+            normal_range: r.referenceRange || r.normal_range || '',
+            date: r.date,
+          });
         });
       });
     }
@@ -357,10 +359,10 @@ function getFromLocalFiles(patientId) {
 async function getPatientContext(patientId) {
   const fromMongo = await getFromMongo(patientId).catch(() => null);
   if (fromMongo) return { source: 'mongo', ...fromMongo };
-  const fromDataset = getFromDataset(patientId);
-  if (fromDataset) return { source: 'dataset', ...fromDataset };
   const fromLocal = getFromLocalFiles(patientId);
   if (fromLocal) return { source: 'local_file', ...fromLocal };
+  const fromDataset = getFromDataset(patientId);
+  if (fromDataset) return { source: 'dataset', ...fromDataset };
   return null;
 }
 

@@ -29,27 +29,41 @@ function getRequestedWordCount(query = '') {
 }
 
 function buildContextText(bundle, hits) {
-  const p = bundle.patient;
+  const p = bundle.patient || {};
   const meds = (bundle.medications || []).slice(0, 12).map((m) => `${m.drug} ${m.dose}`).join(', ');
   const lastVisit = (bundle.visits || []).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
   const alerts = (bundle.alerts || []).slice(0, 6).map((a) => `${a.severity?.toUpperCase()}: ${a.message}`).join('\n');
-  const labText = (bundle.labs || []).slice(0, 20).map((l) => `${l.date} ${l.test}=${l.value}${l.unit || ''} (${l.status || 'NA'})`).join('\n');
-  const ragText = (hits || []).map((h, i) => `[${i + 1}] ${h.text}`).join('\n');
+  const labText = (bundle.labs || []).slice(0, 12).map((l) => `${l.date} ${l.test}=${l.value}${l.unit || ''} (status: ${l.status || 'NA'}, range: ${l.normal_range || l.referenceRange || 'NA'})`).join('\n');
 
-  return `Patient ID: ${p.patient_id}
-Name: ${p.name}
-Age/Gender: ${p.age} / ${p.gender}
-Diagnosis: ${(p.diagnosis || []).join(', ')}
-Allergies: ${(p.allergies || []).join(', ') || 'None'}
-Last Visit: ${lastVisit?.date || 'NA'} ${lastVisit?.doctor_notes || ''}
-Current Medications: ${meds || 'NA'}
+  // Format retrieved chunks with clear clinical attribution and warnings
+  const ragText = (hits || []).map((h, i) => {
+    let header = `[Evidence Chunk ${i + 1}] [Section: ${h.section || 'record'}] [Date: ${h.date || 'NA'}] [Score: ${typeof h.score === 'number' ? h.score.toFixed(3) : h.score}]`;
+    if (h.temporalNote) {
+      header += `\n  ⚠️ TEMPORAL NOTE: ${h.temporalNote}`;
+    }
+    if (h.data_quality_warning) {
+      header += `\n  ⚠️ DATA QUALITY WARNING: ${h.data_quality_warning}`;
+    }
+    return `${header}\n  Content: ${h.text}`;
+  }).join('\n\n');
+
+  return `=== PATIENT DEMOGRAPHICS ===
+Patient ID: ${p.patient_id || 'UNKNOWN'}
+Name: ${p.name || 'Unknown'}
+Age / Gender: ${p.age || 'NA'} / ${p.gender || 'NA'}
+Diagnoses: ${(p.diagnosis || []).join(', ') || 'None recorded'}
+Allergies: ${(p.allergies || []).join(', ') || 'None reported'}
+
+=== PRIMARY RETRIEVED CLINICAL EVIDENCE (USE THIS AS PRIMARY BASIS FOR DIRECT ANSWER) ===
+${ragText || 'No specific semantic matches found.'}
+
+=== BACKGROUND PATIENT RECORD ===
+Current Medications: ${meds || 'None recorded'}
 Active Alerts:
-${alerts || 'NA'}
-Labs:
-${labText || 'NA'}
-
-RAG Retrieved Context:
-${ragText || 'NA'}`;
+${alerts || 'None'}
+Background Labs:
+${labText || 'None'}
+Last Visit: ${lastVisit?.date || 'NA'} (${lastVisit?.doctor || 'Physician'}) - ${lastVisit?.doctor_notes || ''}`;
 }
 
 function compactList(items = [], limit = 4) {
@@ -387,10 +401,10 @@ Instructions:
       }
     }
   } else if (explicitNameInQuery) {
-    // Only switch context if explicit name matches a real patient
-    const resolved = await resolvePatientIdByName(explicitNameInQuery).catch(() => null);
-    if (resolved?.patient_id) {
-      effectivePatientId = resolved.patient_id;
+    // Only switch context if the query explicitly specifies a DIFFERENT patient ID (e.g. P002)
+    const explicitIdMatch = effectiveQuery.match(/\b([pP]\d{3,4})\b/);
+    if (explicitIdMatch && explicitIdMatch[1].toUpperCase() !== effectivePatientId) {
+      effectivePatientId = explicitIdMatch[1].toUpperCase();
     }
   }
 
@@ -439,8 +453,24 @@ Instructions:
       messages: [
         {
           role: 'system',
-          content:
-            'You are an AI doctor assistant. Use RAG context first. Keep output normal, clean, and structured for fast clinical reading.',
+          content: `You are ClinSight-AI, an expert clinical intelligence co-pilot assisting physicians at Kathir Memorial Hospital.
+
+CLINICAL GROUNDING & SOURCE-CONSTRAINED DIRECTIVES:
+1. PRIMARY EVIDENCE CONSTRAINT: Base all patient-specific statements strictly on the "PRIMARY RETRIEVED CLINICAL EVIDENCE" chunks provided in context.
+2. NEVER INVENT FACTS: Do not invent lab results, dates, vital signs, dosages, or medications not present in the evidence.
+3. TEMPORAL ACCURACY & NO SILENT SUBSTITUTION: If the user asks about a specific date:
+   - If an exact record exists for that date, answer with that exact value and cite the date.
+   - If NO record exists for that requested date, you MUST explicitly state that no record was found for that date.
+   - You may cite the most recent or nearest historical result as context, but you MUST clearly label it as prior historical context (e.g., "No record found for [date]. The nearest available historical record is from [date]: [value]").
+   - NEVER silently substitute a past date as if it answers the requested date.
+4. PRESERVE SOURCE DATES & NUMERICAL VALUES: Quote exact numbers, reference ranges, and units (e.g., mg/dL, mmHg, mL/min) without rounding or modification.
+5. DISTINGUISH SOURCE RECORD FROM CLINICAL INTERPRETATION: Clearly separate documented chart facts from physician guidance, clinical interpretations, or recommended next steps.
+6. DATA QUALITY & INCONSISTENCY PRESERVATION: If a retrieved record contains a [DATA QUALITY WARNING] where the documented status contradicts the reference interval (e.g. status is "Normal" but value exceeds range):
+   - Explicitly cite the documented status ("Documented status is Normal").
+   - State the reference range comparison ("However, the value exceeds the reference range of [range]").
+   - Preserve both source values transparently.
+7. EXPLICIT UNAVAILABILITY: If requested information (e.g. a specific test, allergy, or clinical note) is absent from the patient file, state clearly that it is not available in the records.
+8. AVOID UNSUPPORTED DIAGNOSES: Do not declare new or unconfirmed clinical diagnoses not present in the patient's medical history. Conclude actionable suggestions with: "Physician clinical review required."`,
         },
         {
           role: 'user',

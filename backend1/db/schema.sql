@@ -1,4 +1,5 @@
 -- ClinSight AI PostgreSQL Database Schema
+CREATE EXTENSION IF NOT EXISTS vector;
 
 -- 0. Users Table (System Accounts & Authentication)
 CREATE TABLE IF NOT EXISTS users (
@@ -101,3 +102,39 @@ CREATE INDEX IF NOT EXISTS idx_visits_patient_id ON visits(patient_id);
 CREATE INDEX IF NOT EXISTS idx_labs_patient_id ON labs(patient_id);
 CREATE INDEX IF NOT EXISTS idx_meds_patient_id ON medications(patient_id);
 CREATE INDEX IF NOT EXISTS idx_embeddings_patient_id ON document_embeddings(patient_id);
+
+-- 7. Row Level Security (RLS) Configuration
+ALTER TABLE public.patients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.visits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.medications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.labs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.document_embeddings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+-- Permissive policies for application access
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'patients' AND policyname = 'Enable read/write for all') THEN
+    CREATE POLICY "Enable read/write for all" ON public.patients FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'visits' AND policyname = 'Enable read/write for all') THEN
+    CREATE POLICY "Enable read/write for all" ON public.visits FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'medications' AND policyname = 'Enable read/write for all') THEN
+    CREATE POLICY "Enable read/write for all" ON public.medications FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'labs' AND policyname = 'Enable read/write for all') THEN
+    CREATE POLICY "Enable read/write for all" ON public.labs FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'document_embeddings' AND policyname = 'Enable read/write for all') THEN
+    CREATE POLICY "Enable read/write for all" ON public.document_embeddings FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'audit_logs' AND policyname = 'Enable read/write for all') THEN
+    CREATE POLICY "Enable read/write for all" ON public.audit_logs FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'users' AND policyname = 'Enable read/write for all') THEN
+    CREATE POLICY "Enable read/write for all" ON public.users FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+END $$;
+

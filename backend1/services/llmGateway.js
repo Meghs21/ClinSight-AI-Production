@@ -49,18 +49,19 @@ class LLMGateway {
       const groq = this.getGroqClient(apiKey);
       if (groq) {
         try {
-          console.log(`🤖 [LLM GATEWAY CALL] Groq API | Model: ${model || 'llama-3.3-70b-versatile'} | Temperature: 0.0`);
+          const activeModel = model || process.env.GROQ_MODEL || 'groq/compound-mini';
+          console.log(`🤖 [LLM GATEWAY CALL] Groq API | Model: ${activeModel} | Temperature: 0.0`);
           const messages = [];
           if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
           messages.push({ role: 'user', content: prompt });
 
           const res = await groq.chat.completions.create({
-            model: model || 'llama-3.3-70b-versatile',
+            model: activeModel,
             messages,
             temperature: 0.0,
           });
           const text = res.choices[0]?.message?.content;
-          if (text) return { text, provider: 'groq', model: model || 'llama-3.3-70b-versatile' };
+          if (text) return { text, provider: 'groq', model: activeModel };
         } catch (err) {
           console.warn('⚠️ [LLM GATEWAY WARNING] Groq call failed, falling back:', err.message);
         }

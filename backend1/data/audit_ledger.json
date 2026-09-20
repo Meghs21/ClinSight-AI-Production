@@ -28,5 +28,265 @@
     "details": "Doctor completed consultation brief review & RAG Q&A",
     "previousHash": "01919613914777d665113b9395971e20b3c8312e3dbb3878c54c95b447d54d97",
     "hash": "e75d96710705d2ccd39154170d6cf8085dc6355f7f617f1e3bb81cc76572c733"
+  },
+  {
+    "index": 3,
+    "timestamp": "2026-09-20T11:24:05.029Z",
+    "action": "CHECK_DRUG_INTERACTION",
+    "actorId": "SYSTEM",
+    "patientId": "UNKNOWN",
+    "details": "Drug interactions checked: Metformin, Lisinopril",
+    "previousHash": "e75d96710705d2ccd39154170d6cf8085dc6355f7f617f1e3bb81cc76572c733",
+    "hash": "6d7e848ebd127f225bd598a24aa3abc830583c87cc130c701d68dbba737ad4fc"
+  },
+  {
+    "index": 4,
+    "timestamp": "2026-09-20T11:24:06.287Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "NL Query: \"What are the critical clinical flags?\"",
+    "previousHash": "6d7e848ebd127f225bd598a24aa3abc830583c87cc130c701d68dbba737ad4fc",
+    "hash": "f93277edd08a2aad64dff07a43768d86213b28da70b231f8570c64f6be8602ea"
+  },
+  {
+    "index": 5,
+    "timestamp": "2026-09-20T11:37:52.048Z",
+    "action": "CHECK_DRUG_INTERACTION",
+    "actorId": "SYSTEM",
+    "patientId": "UNKNOWN",
+    "details": "Drug interactions checked: Metformin, Lisinopril, Aspirin",
+    "previousHash": "f93277edd08a2aad64dff07a43768d86213b28da70b231f8570c64f6be8602ea",
+    "hash": "8c31920f2068ed919974ba9da76cf91e0944901780c0639be19aa659a6711e46"
+  },
+  {
+    "index": 6,
+    "timestamp": "2026-09-20T12:03:39.675Z",
+    "action": "TICKET_RAISED",
+    "actorId": "SYSTEM",
+    "patientId": "P001",
+    "details": "Consultation ticket raised — CRITICAL priority",
+    "previousHash": "8c31920f2068ed919974ba9da76cf91e0944901780c0639be19aa659a6711e46",
+    "hash": "9ddee2acdd39fe5422718009d474d79ded1e4d0eeb7aad5bfbc3dc7d6e296a52"
+  },
+  {
+    "index": 7,
+    "timestamp": "2026-09-20T12:03:39.788Z",
+    "action": "SECOND_OPINION_REQUEST",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "Second opinion: \"Diabetic Nephropathy Stage 3\"",
+    "previousHash": "9ddee2acdd39fe5422718009d474d79ded1e4d0eeb7aad5bfbc3dc7d6e296a52",
+    "hash": "b96183e9dbfa7b200521a5b3645b3e6b0ec53841ab18bf290c45105ff2f7538e"
+  },
+  {
+    "index": 8,
+    "timestamp": "2026-09-20T12:03:59.736Z",
+    "action": "SPECIALIST_REFERRAL",
+    "actorId": "Dr. Nandakumar",
+    "patientId": "P001",
+    "details": "Referred to Nephrology — Worsening Creatinine",
+    "previousHash": "b96183e9dbfa7b200521a5b3645b3e6b0ec53841ab18bf290c45105ff2f7538e",
+    "hash": "f80b36509c08b4696917d5d0c7ab198a2a8ec62a3125edea27a4841cc729fb7f"
+  },
+  {
+    "index": 9,
+    "timestamp": "2026-09-20T12:03:59.791Z",
+    "action": "QUERY_LAB_TREND",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "Lab trend queried: HbA1c",
+    "previousHash": "f80b36509c08b4696917d5d0c7ab198a2a8ec62a3125edea27a4841cc729fb7f",
+    "hash": "a411328ed5ea622685151e2cd84935f18ac4847be7b3a8f5bfc4f97c8f7d499e"
+  },
+  {
+    "index": 10,
+    "timestamp": "2026-09-20T12:04:43.712Z",
+    "action": "SECOND_OPINION_REQUEST",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "Second opinion: \"Diabetic Nephropathy Stage 3\"",
+    "previousHash": "a411328ed5ea622685151e2cd84935f18ac4847be7b3a8f5bfc4f97c8f7d499e",
+    "hash": "a244401da4b7b5696b28ebf112ba1288c5bf12c080d14e178b89fa585d6a8ea5"
+  },
+  {
+    "index": 11,
+    "timestamp": "2026-09-20T12:17:51.635Z",
+    "action": "SECOND_OPINION_REQUEST",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "Second opinion: \"Diabetic Nephropathy Stage 3\"",
+    "previousHash": "a244401da4b7b5696b28ebf112ba1288c5bf12c080d14e178b89fa585d6a8ea5",
+    "hash": "fd6531ab9f7187dfc6b075640ad352c0a27e6e26dac7ee77d49bc8c4d9541a66"
+  },
+  {
+    "index": 12,
+    "timestamp": "2026-09-20T12:18:11.780Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "NL Query: \"Why is patient P001 flagged as critical?\"",
+    "previousHash": "fd6531ab9f7187dfc6b075640ad352c0a27e6e26dac7ee77d49bc8c4d9541a66",
+    "hash": "dbe93184fc8e7a548074ce85a6a992b9fd736aec9d5168e38e3d15051ad5df10"
+  },
+  {
+    "index": 13,
+    "timestamp": "2026-09-20T13:03:04.917Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "NL Query: \"What was the patient creatinine level on February 8 2026?\"",
+    "previousHash": "dbe93184fc8e7a548074ce85a6a992b9fd736aec9d5168e38e3d15051ad5df10",
+    "hash": "6e86348f4a2897cd8fbc6a2933d44ada98b6368748a93ce072d1c2ade00fe6d9"
+  },
+  {
+    "index": 14,
+    "timestamp": "2026-09-20T14:13:43.850Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "NL Query: \"What was the patient's creatinine level on February 8 2026?\"",
+    "previousHash": "6e86348f4a2897cd8fbc6a2933d44ada98b6368748a93ce072d1c2ade00fe6d9",
+    "hash": "506ed49317027934cd3cecc24ed2642cd77baa957b864c22d0a34037d6916231"
+  },
+  {
+    "index": 15,
+    "timestamp": "2026-09-20T14:13:46.684Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "NL Query: \"What was the patient's creatinine level on 2024-05-29?\"",
+    "previousHash": "506ed49317027934cd3cecc24ed2642cd77baa957b864c22d0a34037d6916231",
+    "hash": "4c77e5a896d93bb24571f2040316bf6415dbfde9fcb8e0cc67855682b845eaa9"
+  },
+  {
+    "index": 16,
+    "timestamp": "2026-09-20T14:14:05.106Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "NL Query: \"What was the patient's creatinine level on February 8 2026?\"",
+    "previousHash": "4c77e5a896d93bb24571f2040316bf6415dbfde9fcb8e0cc67855682b845eaa9",
+    "hash": "770f64e1bd898e2ddc7e672555b71b73cf617b218ecf1547369c8b15c32c8aee"
+  },
+  {
+    "index": 17,
+    "timestamp": "2026-09-20T14:14:07.437Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "NL Query: \"What was the patient's creatinine level on 2024-05-29?\"",
+    "previousHash": "770f64e1bd898e2ddc7e672555b71b73cf617b218ecf1547369c8b15c32c8aee",
+    "hash": "cb4f80f2f7edefc6b03b06d27bf372942d59487a68f70efe715ae1fadf7726bf"
+  },
+  {
+    "index": 18,
+    "timestamp": "2026-09-20T14:14:10.921Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "NL Query: \"What medications is the patient currently taking?\"",
+    "previousHash": "cb4f80f2f7edefc6b03b06d27bf372942d59487a68f70efe715ae1fadf7726bf",
+    "hash": "fb26d12293d96cee008d6705ba0e099b1b87c4934c47483cbcb73a40828927a8"
+  },
+  {
+    "index": 19,
+    "timestamp": "2026-09-20T14:14:12.362Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "NL Query: \"Show the trend of blood pressure and creatinine over time\"",
+    "previousHash": "fb26d12293d96cee008d6705ba0e099b1b87c4934c47483cbcb73a40828927a8",
+    "hash": "8263f4d14db03d7831bb4743a79e235473f2f2d9cd533073bc12d7738a190fbe"
+  },
+  {
+    "index": 20,
+    "timestamp": "2026-09-20T14:14:15.828Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "NL Query: \"What were the doctor's assessment and plan on 2026-02-08?\"",
+    "previousHash": "8263f4d14db03d7831bb4743a79e235473f2f2d9cd533073bc12d7738a190fbe",
+    "hash": "f64271f81fffbaf0a900505b1894ccd2bc8a32901bb27b035f90f406d2a9e187"
+  },
+  {
+    "index": 21,
+    "timestamp": "2026-09-20T14:14:17.231Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "NL Query: \"Does the patient have any recorded allergies before prescribing antibiotics?\"",
+    "previousHash": "f64271f81fffbaf0a900505b1894ccd2bc8a32901bb27b035f90f406d2a9e187",
+    "hash": "df0f3866a9774ba8d378c4bae991abf1465d683e5f44b621ca3909e7c68f77a9"
+  },
+  {
+    "index": 22,
+    "timestamp": "2026-09-20T14:14:18.868Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P051",
+    "details": "NL Query: \"What was the creatinine result for patient P051 on 2024-05-29?\"",
+    "previousHash": "df0f3866a9774ba8d378c4bae991abf1465d683e5f44b621ca3909e7c68f77a9",
+    "hash": "4928f2a289cf6f1b6a9f710cd68251d4ea9853f90f21338a774bb8baf8260e2f"
+  },
+  {
+    "index": 23,
+    "timestamp": "2026-09-20T14:35:40.977Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "NL Query: \"What was the patient's creatinine level on February 8 2026?\"",
+    "previousHash": "4928f2a289cf6f1b6a9f710cd68251d4ea9853f90f21338a774bb8baf8260e2f",
+    "hash": "c5a5143ed49b7cc889704bb4b2132e3ee32b88b2dda9316c1415ab8e355a3136"
+  },
+  {
+    "index": 24,
+    "timestamp": "2026-09-20T14:35:42.514Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "NL Query: \"What was the patient's creatinine level on 2024-05-29?\"",
+    "previousHash": "c5a5143ed49b7cc889704bb4b2132e3ee32b88b2dda9316c1415ab8e355a3136",
+    "hash": "fb0bef1ce8499fec069a33954663eaa43dace2f4c72af5f004a71a66d4a6c0ca"
+  },
+  {
+    "index": 25,
+    "timestamp": "2026-09-20T14:38:18.115Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "NL Query: \"What was the patient's creatinine level on February 8 2026?\"",
+    "previousHash": "fb0bef1ce8499fec069a33954663eaa43dace2f4c72af5f004a71a66d4a6c0ca",
+    "hash": "278841bb1cb7a5046087e4385faaefae48522f08a200c08ac4a23f8e5a94b29a"
+  },
+  {
+    "index": 26,
+    "timestamp": "2026-09-20T14:38:20.870Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "NL Query: \"What was the patient's creatinine level on 2024-05-29?\"",
+    "previousHash": "278841bb1cb7a5046087e4385faaefae48522f08a200c08ac4a23f8e5a94b29a",
+    "hash": "102a65a01f7a3af017af29da26c38399143da4fa2a4d12f9cb1cc43f11d41a9e"
+  },
+  {
+    "index": 27,
+    "timestamp": "2026-09-20T14:40:40.294Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "NL Query: \"What was the patient's creatinine level on February 8 2026?\"",
+    "previousHash": "102a65a01f7a3af017af29da26c38399143da4fa2a4d12f9cb1cc43f11d41a9e",
+    "hash": "4da8a6c1ba7967f35fe8fae6a926a8f3bf64e77ea9880d6254532631efc80a17"
+  },
+  {
+    "index": 28,
+    "timestamp": "2026-09-20T14:40:41.714Z",
+    "action": "NL_QUERY",
+    "actorId": "UNKNOWN",
+    "patientId": "P001",
+    "details": "NL Query: \"What was the patient's creatinine level on 2024-05-29?\"",
+    "previousHash": "4da8a6c1ba7967f35fe8fae6a926a8f3bf64e77ea9880d6254532631efc80a17",
+    "hash": "e0e977d09416ece8ceca457a652c81c2e282ad6693673a5001a5a004933d2f42"
   }
 ]

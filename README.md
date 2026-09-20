@@ -148,8 +148,80 @@ ClinSight deploys specialized modules working in harmony across the clinical int
 | 📖 **Indian Brand Dictionary** | Translates regional trade brands (`HCQS`, `Folitrax`, `Folvite`, `Wysolone`) to generics. |
 | 🚨 **Weekly Dosing Safety Guardrail** | Enforces weekly dosing compliance for Methotrexate-class immunosuppressants. |
 | 🏷️ **Field Provenance Engine** | Binds bounding boxes, confidence, timestamps, and model versioning tags. |
-| 🔍 **FAISS Vector RAG Engine** | Semantic similarity search across historical patient records using `SentenceTransformers`. |
+| 🔍 **Hybrid Clinical RAG Engine** | Multi-domain semantic chunking, temporal grounding, reference-range validation, and dual-tier vector search (`pgvector` + `Vectra`). |
 | 🔐 **Blockchain Logger** | Creates immutable audit trails for every upload, edit, and database commit. |
+
+---
+
+## 🧠 Hybrid Clinical RAG & Temporal Grounding Engine
+
+ClinSight AI incorporates a domain-specific **Hybrid Clinical RAG (Retrieval-Augmented Generation)** pipeline designed specifically for electronic health records (EHR) where pure semantic similarity is clinically unsafe.
+
+### The Clinical Problem
+Standard dense vector search calculates similarity based on semantic proximity. If a physician asks *"What was the patient's creatinine on 2024-05-29?"* and no labs exist on that date, vanilla cosine similarity silently returns a result from another date (e.g. February 2025) because the semantic distance between "creatinine" and "creatinine" is zero.
+
+### Our Solution: Hybrid Multi-Stage Retrieval & Negative Temporal Attribution
+
+```mermaid
+flowchart TD
+    subgraph Data ["1. Clinical Bundle"]
+        EHR["EHR Records (Demographics, Encounters, Medications, Labs)"]
+    end
+
+    subgraph Chunking ["2. Structured Semantic Chunking"]
+        Audit["Inconsistency Auditor: evaluateLabConsistency()<br/>Flags range vs status contradictions"]
+        Chunks["Structured Chunks (profile, visit, medication, lab)<br/>+ Date, Drug, Test, Normal Range Metadata"]
+    end
+
+    subgraph Storage ["3. Dual-Tier Vector Store"]
+        VStore["Primary: PostgreSQL (pgvector)<br/>Local Edge Fallback: Embedded Vectra Index<br/>(Deduplicated UPSERT via Content Hashing)"]
+    end
+
+    subgraph RetrievalEngine ["4. Hybrid Clinical Retrieval"]
+        Query["Clinical Query"] --> QParser["queryParser.js<br/>- Temporal Extractor (Dates, Ranges, Trends)<br/>- Entity Extractor (Biomarkers, Drugs, Sections)"]
+        QParser --> Hybrid["semanticSearch()<br/>1. Hard Pre-Search Patient Boundary Filter<br/>2. Dense Cosine Vector Similarity<br/>3. Deterministic Entity (+0.35) & Date (+0.45) Boost<br/>4. Nearest Historical Tagging (No Silent Substitution)"]
+        VStore --> Hybrid
+    end
+
+    subgraph Generation ["5. Grounded LLM & Provenance"]
+        Hybrid --> Grounding["ragDoctorAgent.js<br/>8 Clinical Grounding & Hallucination Reduction Directives"]
+        Grounding --> LLM["Groq LLaMA 3.3 70B Versatile"]
+        LLM --> Out["Grounded Answer + rag_hits (Dates, Scores, Snippets)"]
+    end
+
+    Data --> Chunking
+    Chunking --> Storage
+```
+
+### Key Technical Capabilities
+1. **Mandatory Patient Boundary Isolation:** Vector candidates are partitioned strictly by `patientId` *before* similarity scoring. Cross-patient data leakage is structurally impossible.
+2. **Deterministic Entity & Temporal Re-ranking:** Dense cosine scores are augmented with deterministic algorithmic boosts for matching clinical sections ($+0.25$), specific biomarkers/drugs ($+0.35$), and exact dates ($+0.45$).
+3. **Negative Temporal Attribution:** If an unrecorded date is queried, the engine surfaces the closest chronological neighbor tagged with an explicit `[NEAREST HISTORICAL RECORD]` note. The LLM explicitly declares that the requested date has no records.
+4. **Data Inconsistency Auditing:** If a laboratory value contradicts its documented reference interval (e.g., Creatinine $1.69\text{ mg/dL}$ with normal range $0.7\text{--}1.3\text{ mg/dL}$ recorded as "Normal"), the engine attaches a `DATA INCONSISTENCY WARNING` while preserving raw source values.
+5. **UI Provenance Cards:** The doctor assistant UI renders a dedicated **Sources / Retrieved Evidence** card beneath each response displaying domain badges, timestamps, similarity scores, warning flags, and source excerpts.
+
+### Automated Evaluation Suite (9 / 9 Scenarios Passed)
+
+| # | Scenario | Query | Expected Behavior | Status |
+|---|---|---|---|:---:|
+| 1 | **Exact Date Match** | *"What were the findings on 2026-02-08?"* | Primary hit date equals `2026-02-08`. | **PASSED** |
+| 2 | **Missing Date Handling** | *"What happened during the visit on 2024-05-29?"* | Explicitly flags date as unrecorded; nearest record labeled. | **PASSED** |
+| 3 | **Historical Search** | *"Show past records nearest to 2024-05-29"* | Proximity-ordered chronological encounters. | **PASSED** |
+| 4 | **Lab Biomarker Query** | *"What was the patient's creatinine level?"* | Lab chunk prioritized over visit notes. | **PASSED** |
+| 5 | **Medication Query** | *"What medications is the patient taking?"* | Returns active drugs, filtering OCR noise. | **PASSED** |
+| 6 | **Clinical Encounter** | *"Why did the patient come in for consultation?"* | Encounter notes and assessments surfaced. | **PASSED** |
+| 7 | **Patient Profile** | *"What is the patient's age, gender, and medical history?"* | Demographic profile chunk prioritized. | **PASSED** |
+| 8 | **Longitudinal Trend** | *"Show the trend of blood pressure and creatinine over time"* | Multi-date sequence in strict chronological order. | **PASSED** |
+| 9 | **Data Inconsistency** | Patient P051 Creatinine ($1.69\text{ mg/dL}$, range $0.7\text{--}1.3$) | Flags contradiction without modifying source data. | **PASSED** |
+
+```bash
+# Run the automated retrieval evaluation test suite
+cd backend1
+node tests/test_rag_retrieval_eval.js
+
+# Run the end-to-end live API test suite
+node tests/test_api_endpoints.js
+```
 
 ---
 

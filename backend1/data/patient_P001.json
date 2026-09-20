@@ -11,7 +11,8 @@
   "primaryDiagnosis": [
     "Type 2 Diabetes Mellitus (E11)",
     "Hypertension (I10)",
-    "None specified"
+    "None specified",
+    "Type 2 Diabetes Mellitus"
   ],
   "secondaryDiagnosis": [
     "Early Diabetic Nephropathy (N08)"
@@ -142,6 +143,36 @@
       },
       {
         "date": "2026-08-06",
+        "value": 9.4,
+        "source": "OCR_INGESTION"
+      },
+      {
+        "date": "2026-09-20",
+        "value": 9.4,
+        "source": "OCR_INGESTION"
+      },
+      {
+        "date": "2026-09-20",
+        "value": 9.4,
+        "source": "OCR_INGESTION"
+      },
+      {
+        "date": "2026-09-20",
+        "value": 9.4,
+        "source": "OCR_INGESTION"
+      },
+      {
+        "date": "2026-09-20",
+        "value": 9.4,
+        "source": "OCR_INGESTION"
+      },
+      {
+        "date": "2026-09-20",
+        "value": 9.4,
+        "source": "OCR_INGESTION"
+      },
+      {
+        "date": "2026-09-20",
         "value": 9.4,
         "source": "OCR_INGESTION"
       }
@@ -350,6 +381,60 @@
       "department": "Medical Records",
       "chiefComplaint": "None specified",
       "clinicalNote": "Validated extraction: None specified. Meds: Amoxicillin 500mg Cap TID",
+      "plan": "",
+      "source": "OCR_INGESTION"
+    },
+    {
+      "date": "2026-09-20",
+      "doctor": "OCR Import",
+      "department": "Medical Records",
+      "chiefComplaint": "Document ingestion",
+      "clinicalNote": "",
+      "plan": "",
+      "source": "OCR_INGESTION"
+    },
+    {
+      "date": "2026-09-20",
+      "doctor": "OCR Import",
+      "department": "Medical Records",
+      "chiefComplaint": "Document ingestion",
+      "clinicalNote": "",
+      "plan": "",
+      "source": "OCR_INGESTION"
+    },
+    {
+      "date": "2026-09-20",
+      "doctor": "OCR Import",
+      "department": "Medical Records",
+      "chiefComplaint": "Document ingestion",
+      "clinicalNote": "",
+      "plan": "",
+      "source": "OCR_INGESTION"
+    },
+    {
+      "date": "2026-09-20",
+      "doctor": "OCR Import",
+      "department": "Medical Records",
+      "chiefComplaint": "Document ingestion",
+      "clinicalNote": "",
+      "plan": "",
+      "source": "OCR_INGESTION"
+    },
+    {
+      "date": "2026-09-20",
+      "doctor": "OCR Import",
+      "department": "Medical Records",
+      "chiefComplaint": "Document ingestion",
+      "clinicalNote": "",
+      "plan": "",
+      "source": "OCR_INGESTION"
+    },
+    {
+      "date": "2026-09-20",
+      "doctor": "OCR Import",
+      "department": "Medical Records",
+      "chiefComplaint": "Document ingestion",
+      "clinicalNote": "",
       "plan": "",
       "source": "OCR_INGESTION"
     }

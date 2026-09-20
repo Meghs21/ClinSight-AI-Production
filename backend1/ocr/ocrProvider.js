@@ -47,7 +47,7 @@ class GroqLLMProvider extends OCRProvider {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
+          model: process.env.GROQ_MODEL || 'groq/compound-mini',
           messages: [
         {
           role: 'system',

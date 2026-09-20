@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { patients, type Patient } from "@/lib/mock-data";
-import { agentQuery } from "@/lib/patient-portal";
+import { agentQuery, agentQueryDetailed, type RagHit } from "@/lib/patient-portal";
 import { fetchApi } from "@/lib/backend-api";
 import {
   Send,
@@ -40,6 +40,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: string;
+  rag_hits?: RagHit[];
 }
 
 interface ChatSession {
@@ -345,11 +346,12 @@ export default function AssistantPage() {
     const targetPatientId = isAllPatientsMode ? undefined : selectedPatient;
 
     try {
-      const response = await agentQuery(prompt, targetPatientId, { allPatients: isAllPatientsMode });
+      const res = await agentQueryDetailed(prompt, targetPatientId, { allPatients: isAllPatientsMode });
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: response,
+        content: res.answer,
+        rag_hits: res.rag_hits,
         timestamp: new Date().toISOString(),
       };
       updateActiveChat((chat) => ({
@@ -698,6 +700,65 @@ export default function AssistantPage() {
                       )}
                     >
                       <FormattedMessage content={message.content} />
+
+                      {message.role === "assistant" && message.rag_hits && message.rag_hits.length > 0 && (
+                        <div className="mt-4 border-t border-border/70 pt-3">
+                          <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-foreground/80">
+                            <Database className="h-3.5 w-3.5 text-primary" />
+                            <span>Sources / Retrieved Evidence ({message.rag_hits.length})</span>
+                          </div>
+                          <div className="space-y-2">
+                            {message.rag_hits.map((hit, hIdx) => {
+                              const sectionIcon =
+                                hit.section === "lab"
+                                  ? "🧪"
+                                  : hit.section === "medication"
+                                  ? "💊"
+                                  : hit.section === "visit"
+                                  ? "🏥"
+                                  : "👤";
+                              return (
+                                <div
+                                  key={hIdx}
+                                  className="rounded-xl border border-border/70 bg-muted/40 p-2.5 text-xs transition-colors hover:bg-muted/60"
+                                >
+                                  <div className="mb-1.5 flex flex-wrap items-center justify-between gap-1.5">
+                                    <div className="flex items-center gap-1.5">
+                                      <span>{sectionIcon}</span>
+                                      <span className="rounded border border-border/50 bg-background/80 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/80">
+                                        {hit.section}
+                                      </span>
+                                      <span className="font-mono text-[11px] text-muted-foreground">
+                                        {hit.date || "Record"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-mono text-primary">
+                                      <span>📊 Similarity:</span>
+                                      <span className="font-bold">
+                                        {typeof hit.score === "number" ? hit.score.toFixed(3) : hit.score}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {hit.temporalNote && (
+                                    <div className="mb-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-1.5 text-[11px] text-amber-700 dark:text-amber-400">
+                                      ⚠️ <strong>Temporal Note:</strong> {hit.temporalNote}
+                                    </div>
+                                  )}
+                                  {hit.data_quality_warning && (
+                                    <div className="mb-1.5 rounded-lg border border-red-500/30 bg-red-500/10 p-1.5 text-[11px] text-red-700 dark:text-red-400">
+                                      ⚠️ <strong>Data Inconsistency:</strong> {hit.data_quality_warning}
+                                    </div>
+                                  )}
+                                  <p className="line-clamp-3 text-[11px] leading-relaxed text-muted-foreground transition-all hover:line-clamp-none">
+                                    {hit.text}
+                                  </p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       <p className={cn("mt-2 text-xs", message.role === "assistant" ? "text-muted-foreground" : "opacity-70")}>
                         {new Date(message.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
                       </p>

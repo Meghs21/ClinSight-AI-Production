@@ -1,8 +1,14 @@
-const fs = require('fs');
+'use strict';
+
+const fs   = require('fs');
 const path = require('path');
+const bcrypt = require('bcrypt');
 const { signToken } = require('../middleware/authMiddleware');
 
-const USERS_FILE = path.join(__dirname, '../data/users.json');
+const USERS_FILE   = path.join(__dirname, '../data/users.json');
+const BCRYPT_ROUNDS = 12;
+
+// ─── Postgres (optional) ──────────────────────────────────────────────────────
 
 let pgPool = null;
 if (process.env.DATABASE_URL) {
@@ -14,10 +20,10 @@ if (process.env.DATABASE_URL) {
   }
 }
 
+// ─── Local JSON user store ────────────────────────────────────────────────────
+
 function loadUsers() {
-  if (!fs.existsSync(USERS_FILE)) {
-    return { doctors: [], patients: [] };
-  }
+  if (!fs.existsSync(USERS_FILE)) return { doctors: [], patients: [] };
   try {
     return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
   } catch {
@@ -29,35 +35,45 @@ function saveUsers(data) {
   try {
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2), 'utf8');
   } catch (err) {
-    console.error('Failed to save user to users.json:', err.message);
+    console.error('Failed to save users.json:', err.message);
   }
 }
 
-async function saveUserToPostgres(userObj, password) {
+async function saveUserToPostgres(userObj, passwordHash) {
   if (!pgPool) return;
   try {
     await pgPool.query(
       `INSERT INTO users (id, name, email, password_hash, role, department, patient_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (email) DO UPDATE SET
-         name = EXCLUDED.name,
+         name          = EXCLUDED.name,
          password_hash = EXCLUDED.password_hash,
-         role = EXCLUDED.role,
-         department = EXCLUDED.department`,
+         role          = EXCLUDED.role,
+         department    = EXCLUDED.department`,
       [
         userObj.id || `U${Date.now()}`,
         userObj.name,
         userObj.email,
-        password || 'doctor123',
+        passwordHash,
         userObj.role || 'doctor',
         userObj.department || 'General Medicine',
         userObj.patient_id || userObj.id || null,
       ]
     );
   } catch (err) {
-    console.warn('Postgres SQL save user warning:', err.message);
+    console.warn('Postgres save user warning:', err.message);
   }
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function sanitizeUser(user) {
+  // Never return password hash or raw password to the client
+  const { password, password_hash, ...safe } = user;
+  return safe;
+}
+
+// ─── Login ────────────────────────────────────────────────────────────────────
 
 async function login(req, res) {
   try {
@@ -67,189 +83,162 @@ async function login(req, res) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const cleanEmail = String(email).trim().toLowerCase();
+    const cleanEmail   = String(email).trim().toLowerCase();
     const assignedRole = role || 'doctor';
 
-    // 1. Try PostgreSQL lookup first
+    // 1. PostgreSQL lookup (if configured)
     if (pgPool) {
       try {
-        const resPg = await pgPool.query('SELECT * FROM users WHERE LOWER(email) = $1', [cleanEmail]);
-        if (resPg.rows && resPg.rows[0]) {
-          const u = resPg.rows[0];
-          if (u.password_hash === password || password.length >= 3) {
-            const userObj = {
-              id: u.id,
-              name: u.name,
-              email: u.email,
-              role: u.role || assignedRole,
-              department: u.department,
-              patient_id: u.patient_id || u.id,
-            };
-            const token = signToken(userObj);
-            return res.json({ token, user: userObj, role: userObj.role });
+        const result = await pgPool.query('SELECT * FROM users WHERE LOWER(email) = $1', [cleanEmail]);
+        if (result.rows[0]) {
+          const u = result.rows[0];
+          // Support both bcrypt hashes and legacy plain-text passwords (migration path)
+          const passwordValid = u.password_hash.startsWith('$2')
+            ? await bcrypt.compare(password, u.password_hash)
+            : password === u.password_hash;
+
+          if (passwordValid) {
+            const userObj = { id: u.id, name: u.name, email: u.email, role: u.role || assignedRole, department: u.department };
+            return res.json({ token: signToken(userObj), user: userObj, role: userObj.role });
           }
+          // Wrong password — fail immediately (don't fall through to JSON store)
+          return res.status(401).json({ error: 'Invalid email or password' });
         }
       } catch (err) {
-        console.warn('Postgres auth lookup warning, using JSON fallback:', err.message);
+        console.warn('Postgres auth warning, falling back to JSON store:', err.message);
       }
     }
 
-    // 2. Check environment doctor credentials override if present
-    const envDoctorEmail = process.env.DOCTOR_EMAIL || 'nandakumar@kathir.in';
-    const envDoctorPassword = process.env.DOCTOR_PASSWORD;
-
-    if (
-      cleanEmail === envDoctorEmail.toLowerCase() &&
-      envDoctorPassword &&
-      password === envDoctorPassword
-    ) {
-      const userObj = { id: 'D001', name: 'Dr. Nandakumar', email: envDoctorEmail, role: 'doctor' };
-      const token = signToken(userObj);
-      await saveUserToPostgres(userObj, password);
+    // 2. Environment-variable doctor account (seeded demo credentials)
+    const envEmail    = process.env.DOCTOR_EMAIL    || 'nandakumar@kathir.in';
+    const envPassword = process.env.DOCTOR_PASSWORD || 'doctor123';
+    if (cleanEmail === envEmail.toLowerCase() && password === envPassword) {
+      const userObj = { id: 'D001', name: 'Dr. Nandakumar', email: envEmail, role: 'doctor', department: 'General Medicine & Diabetology' };
+      const token   = signToken(userObj);
+      await saveUserToPostgres(userObj, await bcrypt.hash(password, BCRYPT_ROUNDS));
       return res.json({ token, user: userObj, role: 'doctor' });
     }
 
+    // 3. Local JSON store
     const data = loadUsers();
 
-    // Check doctor match
-    const doctorMatch = (data.doctors || []).find(
-      (d) => d.email.toLowerCase() === cleanEmail
-    );
+    const allUsers = [
+      ...(data.doctors  || []).map((u) => ({ ...u, role: 'doctor'  })),
+      ...(data.patients || []).map((u) => ({ ...u, role: 'patient' })),
+    ];
 
-    if (doctorMatch && assignedRole === 'doctor') {
-      const userObj = {
-        id: doctorMatch.id,
-        name: doctorMatch.name,
-        email: doctorMatch.email,
-        department: doctorMatch.department,
-        role: 'doctor',
-      };
-      const token = signToken(userObj);
-      await saveUserToPostgres(userObj, password);
-      return res.json({ token, user: userObj, role: 'doctor' });
+    const match = allUsers.find((u) => u.email.toLowerCase() === cleanEmail && u.role === assignedRole);
+
+    if (match) {
+      // Support bcrypt hashes and legacy plain-text passwords side-by-side
+      const passwordValid = match.password?.startsWith('$2')
+        ? await bcrypt.compare(password, match.password)
+        : password === match.password;
+
+      if (!passwordValid) {
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+
+      const userObj = sanitizeUser({ ...match });
+      const token   = signToken(userObj);
+      await saveUserToPostgres(userObj, await bcrypt.hash(password, BCRYPT_ROUNDS));
+      return res.json({ token, user: userObj, role: userObj.role });
     }
 
-    // Check patient match
-    const patientMatch = (data.patients || []).find(
-      (p) => p.email.toLowerCase() === cleanEmail
-    );
-
-    if (patientMatch && assignedRole === 'patient') {
-      const userObj = {
-        id: patientMatch.id || 'P001',
-        name: patientMatch.name,
-        email: patientMatch.email,
-        role: 'patient',
-        patient_id: patientMatch.id || 'P001',
-      };
-      const token = signToken(userObj);
-      await saveUserToPostgres(userObj, password);
-      return res.json({ token, user: userObj, role: 'patient' });
+    // 4. Frictionless login — auto-create account (dev / demo convenience)
+    //    Disabled in production unless ALLOW_AUTO_CREATE=true
+    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_AUTO_CREATE !== 'true') {
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Auto-create user on login if not found (Frictionless login)
-    const newId = assignedRole === 'doctor' ? `D${Date.now().toString().slice(-4)}` : `P001`;
-    const userName = cleanEmail.split('@')[0].replace('.', ' ');
-    const formattedName = userName.charAt(0).toUpperCase() + userName.slice(1);
-    
-    const newUserObj = {
-      id: newId,
-      name: assignedRole === 'doctor' ? `Dr. ${formattedName}` : formattedName,
-      email: cleanEmail,
-      role: assignedRole,
+    const newId      = assignedRole === 'doctor' ? `D${Date.now().toString().slice(-4)}` : `P${Date.now().toString().slice(-4)}`;
+    const userName   = cleanEmail.split('@')[0].replace(/[._]/g, ' ');
+    const formatted  = userName.charAt(0).toUpperCase() + userName.slice(1);
+    const hashed     = await bcrypt.hash(password, BCRYPT_ROUNDS);
+
+    const newUser = {
+      id:         newId,
+      name:       assignedRole === 'doctor' ? `Dr. ${formatted}` : formatted,
+      email:      cleanEmail,
+      password:   hashed,
+      role:       assignedRole,
       department: assignedRole === 'doctor' ? 'General Medicine' : undefined,
       patient_id: assignedRole === 'patient' ? 'P001' : newId,
     };
 
     if (assignedRole === 'doctor') {
       data.doctors = data.doctors || [];
-      data.doctors.push({ ...newUserObj, password });
+      data.doctors.push(newUser);
     } else {
       data.patients = data.patients || [];
-      data.patients.push({ ...newUserObj, password });
+      data.patients.push(newUser);
     }
     saveUsers(data);
-    await saveUserToPostgres(newUserObj, password);
 
-    const token = signToken(newUserObj);
-    return res.json({ token, user: newUserObj, role: assignedRole });
+    const userObj = sanitizeUser(newUser);
+    const token   = signToken(userObj);
+    await saveUserToPostgres(userObj, hashed);
+    return res.json({ token, user: userObj, role: assignedRole });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Login error:', err.message);
+    res.status(500).json({ error: 'Authentication service error' });
   }
 }
+
+// ─── Register ─────────────────────────────────────────────────────────────────
 
 async function register(req, res) {
   try {
     const { name, email, password, role, department } = req.body || {};
-    if (!email || !name) {
-      return res.status(400).json({ error: 'Name and email are required' });
+    if (!email || !name || !password) {
+      return res.status(400).json({ error: 'name, email, and password are required' });
     }
 
     const assignedRole = role || 'doctor';
-    const data = loadUsers();
-    const cleanEmail = String(email).trim().toLowerCase();
+    const cleanEmail   = String(email).trim().toLowerCase();
+    const data         = loadUsers();
 
-    const existingDoctor = (data.doctors || []).find((d) => d.email.toLowerCase() === cleanEmail);
-    const existingPatient = (data.patients || []).find((p) => p.email.toLowerCase() === cleanEmail);
-
-    let userId = '';
-    if (existingDoctor || existingPatient) {
-      const targetList = assignedRole === 'doctor' ? data.doctors : data.patients;
-      const match = targetList.find((u) => u.email.toLowerCase() === cleanEmail);
-      if (match) {
-        if (password) match.password = password;
-        if (department) match.department = department;
-        if (name) match.name = name;
-        userId = match.id;
-      }
-    } else {
-      userId = assignedRole === 'doctor' ? `D${Date.now().toString().slice(-4)}` : `P001`;
-      const newUser = {
-        id: userId,
-        name: String(name).trim(),
-        email: cleanEmail,
-        password: password || 'doctor123',
-        department: assignedRole === 'doctor' ? (department || 'General Medicine') : undefined,
-        specialisation: assignedRole === 'doctor' ? (department || 'General Practice') : undefined,
-        patients: [],
-      };
-
-      if (assignedRole === 'doctor') {
-        data.doctors = data.doctors || [];
-        data.doctors.push(newUser);
-      } else {
-        data.patients = data.patients || [];
-        data.patients.push(newUser);
-      }
+    const allUsers = [
+      ...(data.doctors  || []),
+      ...(data.patients || []),
+    ];
+    if (allUsers.some((u) => u.email.toLowerCase() === cleanEmail)) {
+      return res.status(409).json({ error: 'An account with this email already exists' });
     }
 
-    saveUsers(data);
+    const hashed = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    const userId = assignedRole === 'doctor'
+      ? `D${Date.now().toString().slice(-4)}`
+      : `P${Date.now().toString().slice(-4)}`;
 
-    const userObj = {
-      id: userId || `U${Date.now().toString().slice(-4)}`,
-      name: String(name).trim(),
-      email: cleanEmail,
-      department: assignedRole === 'doctor' ? (department || 'General Medicine') : undefined,
-      role: assignedRole,
-      patient_id: assignedRole === 'patient' ? 'P001' : userId,
+    const newUser = {
+      id:          userId,
+      name:        String(name).trim(),
+      email:       cleanEmail,
+      password:    hashed,
+      department:  assignedRole === 'doctor' ? (department || 'General Medicine') : undefined,
+      patient_id:  assignedRole === 'patient' ? 'P001' : userId,
     };
 
-    const token = signToken(userObj);
-    await saveUserToPostgres(userObj, password);
+    if (assignedRole === 'doctor') {
+      data.doctors = data.doctors || [];
+      data.doctors.push(newUser);
+    } else {
+      data.patients = data.patients || [];
+      data.patients.push(newUser);
+    }
+    saveUsers(data);
 
-    return res.json({
-      success: true,
-      token,
-      user: userObj,
-      role: assignedRole,
-    });
+    const userObj = sanitizeUser({ ...newUser, role: assignedRole });
+    const token   = signToken(userObj);
+    await saveUserToPostgres(userObj, hashed);
+
+    return res.status(201).json({ success: true, token, user: userObj, role: assignedRole });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Register error:', err.message);
+    res.status(500).json({ error: 'Registration service error' });
   }
 }
 
-module.exports = {
-  login,
-  register,
-};
+module.exports = { login, register };
