@@ -140,7 +140,7 @@ class GeminiVisionProvider extends OCRProvider {
 
       const prompt = `Transcribe all text from this medical image including handwritten notes, doctor prescriptions, dosage instructions, and lab numbers exactly as written with full dosing frequencies and schedules. Return raw transcribed text only.`;
 
-      const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-pro'];
+      const modelsToTry = ['gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash'];
 
       for (const modelName of modelsToTry) {
         for (let attempt = 1; attempt <= 3; attempt++) {
@@ -176,44 +176,10 @@ class GeminiVisionProvider extends OCRProvider {
         }
       }
 
-      console.warn(`[${this.name}] All Gemini Vision models failed. Checking if Sarvam-M text fallback is applicable...`);
-
-      // NOTE: Sarvam-M is text-only (no multimodal vision support).
-      // It can only help if the file is a readable text document, NOT a PNG/JPG image.
-      const imageExts = ['.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp', '.gif'];
-      const isImageFile = imageExts.includes(path.extname(filePath).toLowerCase());
-
-      if (!isImageFile) {
-        try {
-          const sarvam = require('../services/sarvamClient');
-          const rawText = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8').slice(0, 8000) : '';
-          if (rawText && rawText.trim().length > 20) {
-            const result = await sarvam.generateText(
-              `Transcribe and structure this raw medical text from a clinical document. Extract patient name, diagnosis, medications with dosage and frequency, symptoms, and lab values:\n\n${rawText}`,
-              'You are an expert clinical text structuring engine. Output clean structured medical text only.',
-              1024
-            );
-            if (result.success && result.text) {
-              console.log(`[${this.name}] Sarvam-M text structuring fallback succeeded.`);
-              return {
-                text: result.text,
-                confidence: 0.75,
-                blocks: [{ text: result.text, confidence: 0.75 }],
-                provider: 'SarvamM_TextFallback',
-                version: 'sarvam_m_v1.0_text_only_fallback',
-              };
-            }
-          }
-        } catch (sarvamErr) {
-          console.warn(`[${this.name}] Sarvam-M fallback failed: ${sarvamErr.message}`);
-        }
-      } else {
-        console.warn(`[${this.name}] Image file detected — Sarvam-M has no vision capability. Falling straight to Tesseract.`);
-      }
-
-      console.warn(`[${this.name}] All providers failed. Delegating to Tesseract (local offline fallback)...`);
+      console.warn(`[${this.name}] Gemini Vision models failed. Delegating directly to Tesseract fallback...`);
       const fallback = new TesseractProvider();
       return fallback.processDocument(filePath);
+
     } catch (err) {
       console.warn(`[${this.name}] Gemini Vision error:`, err.message);
       const fallback = new TesseractProvider();
@@ -306,20 +272,202 @@ class AzureDocAIProvider extends OCRProvider {
   }
 }
 
+// ─── SMART OCR PROVIDER ───────────────────────────────────────────────────────
+// Three-path pipeline:
+//   PATH 1 — Digitally native file (.txt, .csv, .json, .html, .md, .pdf text)
+//             → Direct fs.readFileSync. No OCR lib. Confidence = 1.0.
+//
+//   PATH 2 — Image / scanned file (.png, .jpg, .jpeg, .bmp, .tiff, .webp)
+//             → Tesseract first (primary, local, offline)
+//             → If confidence < LOW_CONFIDENCE_THRESHOLD: escalate to Gemini Vision
+//
+//   PATH 3 — Unknown extension
+//             → Attempt direct text read, then fall back to Tesseract
+
+const LOW_CONFIDENCE_THRESHOLD = 0.75; // escalate to Gemini if Tesseract < this
+
+const NATIVE_TEXT_EXTS  = new Set(['.txt', '.csv', '.json', '.html', '.htm', '.md', '.log', '.xml']);
+const IMAGE_EXTS        = new Set(['.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif', '.webp', '.gif']);
+
+class SmartOCRProvider extends OCRProvider {
+  constructor() {
+    super('SmartOCR');
+  }
+
+  async processDocument(filePath) {
+    const ext = path.extname(filePath).toLowerCase();
+
+    // ── PATH 1: Digitally native — direct text extraction, zero libs ──────────
+    if (NATIVE_TEXT_EXTS.has(ext)) {
+      console.log(`[SmartOCR] PATH 1: Digitally native file (${ext}) — direct text extraction`);
+      try {
+        const text = fs.readFileSync(filePath, 'utf8').trim();
+        if (text.length > 0) {
+          return {
+            text,
+            confidence: 1.0,
+            blocks: [{ text, confidence: 1.0 }],
+            provider: 'SmartOCR_DirectText',
+            version: 'direct_fs_read_v1.0',
+            path: 'native_text',
+          };
+        }
+      } catch (err) {
+        console.warn(`[SmartOCR] Direct read failed for ${ext}: ${err.message}`);
+      }
+    }
+
+    // ── PATH 2: Image file — Tesseract primary, Gemini if confidence low ──────
+    if (IMAGE_EXTS.has(ext)) {
+      console.log(`[SmartOCR] PATH 2: Image file (${ext}) — running Tesseract (primary)`);
+
+      const tessResult = await this._runTesseract(filePath);
+
+      if (tessResult.confidence >= LOW_CONFIDENCE_THRESHOLD) {
+        console.log(`[SmartOCR] Tesseract confidence ${(tessResult.confidence * 100).toFixed(1)}% ≥ ${LOW_CONFIDENCE_THRESHOLD * 100}% — accepting result`);
+        return { ...tessResult, path: 'tesseract_primary' };
+      }
+
+      // Low confidence — escalate to Gemini Vision
+      console.warn(
+        `[SmartOCR] Tesseract confidence ${(tessResult.confidence * 100).toFixed(1)}% < ${LOW_CONFIDENCE_THRESHOLD * 100}% — escalating to Gemini Vision`
+      );
+      const geminiResult = await this._runGemini(filePath);
+      if (geminiResult) {
+        return { ...geminiResult, path: 'tesseract_low_confidence_gemini_escalation' };
+      }
+
+      // Gemini also failed — return Tesseract result anyway (best effort)
+      console.warn('[SmartOCR] Gemini escalation failed — returning Tesseract result as best effort');
+      return { ...tessResult, path: 'tesseract_primary_gemini_failed' };
+    }
+
+    // ── PATH 3: Unknown extension — try direct read then Tesseract ────────────
+    console.log(`[SmartOCR] PATH 3: Unknown extension (${ext || 'none'}) — attempting direct read`);
+    try {
+      const text = fs.readFileSync(filePath, 'utf8').trim();
+      if (text.length > 20) {
+        return {
+          text,
+          confidence: 0.90,
+          blocks: [{ text, confidence: 0.90 }],
+          provider: 'SmartOCR_DirectFallback',
+          version: 'direct_fs_fallback_v1.0',
+          path: 'unknown_ext_direct_read',
+        };
+      }
+    } catch {}
+
+    const tessResult = await this._runTesseract(filePath);
+    return { ...tessResult, path: 'unknown_ext_tesseract' };
+  }
+
+  // ── Internal: run Tesseract ────────────────────────────────────────────────
+  async _runTesseract(filePath) {
+    try {
+      const { createWorker } = require('tesseract.js');
+      const worker = await createWorker('eng');
+      const ret = await worker.recognize(filePath);
+      await worker.terminate();
+
+      const text = ret.data?.text || '';
+      const confidence = (ret.data?.confidence || 70) / 100;
+
+      console.log(`[SmartOCR → Tesseract] confidence=${(confidence * 100).toFixed(1)}% chars=${text.length}`);
+
+      return {
+        text: text || 'Scanned clinical document',
+        confidence: text ? confidence : 0.50,
+        blocks: [],
+        provider: 'SmartOCR_Tesseract',
+        version: 'tesseract_v5.3.0',
+      };
+    } catch (err) {
+      console.warn('[SmartOCR → Tesseract] Failed:', err.message);
+      return {
+        text: 'Scanned clinical document',
+        confidence: 0.50,
+        blocks: [],
+        provider: 'SmartOCR_Tesseract_Error',
+        version: 'tesseract_v5.3.0_error',
+      };
+    }
+  }
+
+  // ── Internal: run Gemini Vision (escalation only) ──────────────────────────
+  async _runGemini(filePath) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.warn('[SmartOCR → Gemini] GEMINI_API_KEY missing — cannot escalate');
+      return null;
+    }
+
+    try {
+      const ext = path.extname(filePath).toLowerCase();
+      const mimeType = (ext === '.jpg' || ext === '.jpeg') ? 'image/jpeg' : 'image/png';
+      const base64Data = fs.readFileSync(filePath).toString('base64');
+
+      const { GoogleGenAI } = require('@google/genai');
+      const ai = new GoogleGenAI({ apiKey });
+
+      const modelsToTry = ['gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash'];
+
+      for (const modelName of modelsToTry) {
+        try {
+          const response = await ai.models.generateContent({
+            model: modelName,
+            contents: [
+              'Transcribe all text from this medical image including handwritten notes, doctor prescriptions, dosage instructions, and lab numbers exactly as written with full dosing frequencies and schedules. Return raw transcribed text only.',
+              { inlineData: { data: base64Data, mimeType } },
+            ],
+          });
+
+          const text = (response.text || '').trim();
+          if (text) {
+            console.log(`[SmartOCR → Gemini] Escalation succeeded via ${modelName} (${text.length} chars)`);
+            return {
+              text,
+              confidence: 0.97,
+              blocks: [{ text, confidence: 0.97 }],
+              provider: `SmartOCR_GeminiEscalation_${modelName}`,
+              version: `gemini_escalation_${modelName}_v1.0`,
+            };
+          }
+        } catch (err) {
+          console.warn(`[SmartOCR → Gemini] ${modelName} failed: ${err.message.slice(0, 100)}`);
+        }
+      }
+
+      return null; // all Gemini models failed
+    } catch (err) {
+      console.warn('[SmartOCR → Gemini] Escalation error:', err.message);
+      return null;
+    }
+  }
+}
+
+// ─── Provider Factory ─────────────────────────────────────────────────────────
+// SmartOCRProvider is now the default for all new requests.
+// Legacy providers (Azure, Groq, Gemini standalone) still available via env flag.
+
 function getOCRProvider(filePath = '', providerName = process.env.OCR_PROVIDER) {
   const provider = (providerName || '').toLowerCase();
 
   if (provider === 'azure' || provider === 'azure_doc_ai') {
     return new AzureDocAIProvider();
   }
-  if (provider === 'gemini' || provider === 'gemini_vision' || process.env.GEMINI_API_KEY) {
-    return new GeminiVisionProvider();
-  }
-  if (provider === 'groq' || provider === 'groq_vision' || process.env.GROQ_API_KEY) {
+  if (provider === 'groq' || provider === 'groq_vision') {
     return new GroqLLMProvider();
   }
+  if (provider === 'gemini' || provider === 'gemini_vision') {
+    return new GeminiVisionProvider();
+  }
+  if (provider === 'tesseract') {
+    return new TesseractProvider();
+  }
 
-  return new TesseractProvider();
+  // Default: Smart three-path pipeline
+  return new SmartOCRProvider();
 }
 
 module.exports = {
@@ -328,5 +476,6 @@ module.exports = {
   GeminiVisionProvider,
   TesseractProvider,
   AzureDocAIProvider,
+  SmartOCRProvider,
   getOCRProvider,
 };
