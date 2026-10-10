@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
+const zlib = require('zlib');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 /**
@@ -289,6 +291,74 @@ const LOW_CONFIDENCE_THRESHOLD = 0.75; // escalate to Gemini if Tesseract < this
 const NATIVE_TEXT_EXTS  = new Set(['.txt', '.csv', '.json', '.html', '.htm', '.md', '.log', '.xml']);
 const IMAGE_EXTS        = new Set(['.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif', '.webp', '.gif']);
 
+// Helper: Encode uncompressed 24-bit BGR BMP buffer from raw RGB/BGR pixels
+function encodeBmpBuffer(width, height, pixelData) {
+  const rowSize = Math.floor((24 * width + 31) / 32) * 4;
+  const imageSize = rowSize * height;
+  const fileSize = 54 + imageSize;
+  const buf = Buffer.alloc(fileSize);
+
+  // BMP Header
+  buf.write('BM', 0);
+  buf.writeUInt32LE(fileSize, 2);
+  buf.writeUInt32LE(54, 10);
+
+  // DIB Header (BITMAPINFOHEADER)
+  buf.writeUInt32LE(40, 14);
+  buf.writeInt32LE(width, 18);
+  buf.writeInt32LE(height, 22); // bottom-up
+  buf.writeUInt16LE(1, 26);
+  buf.writeUInt16LE(24, 28);
+  buf.writeUInt32LE(0, 30);
+  buf.writeUInt32LE(imageSize, 34);
+
+  for (let y = height - 1; y >= 0; y--) {
+    const rowOffset = 54 + (height - 1 - y) * rowSize;
+    for (let x = 0; x < width; x++) {
+      const srcIdx = (y * width + x) * 3;
+      const dstIdx = rowOffset + x * 3;
+      buf[dstIdx] = pixelData[srcIdx + 2] ?? 0;
+      buf[dstIdx + 1] = pixelData[srcIdx + 1] ?? 0;
+      buf[dstIdx + 2] = pixelData[srcIdx] ?? 0;
+    }
+  }
+  return buf;
+}
+
+// Helper: Extract embedded image pages/XObjects from PDF buffer
+function extractImagesFromPdfBuffer(pdfBuffer) {
+  const images = [];
+  const content = pdfBuffer.toString('binary');
+  const objRegex = /<<([\s\S]*?)>>\s*stream\r?\n([\s\S]*?)\r?\nendstream/g;
+  let match;
+
+  while ((match = objRegex.exec(content)) !== null) {
+    const dict = match[1];
+    const rawStream = Buffer.from(match[2], 'binary');
+    if (/Subtype\s*\/\s*Image/i.test(dict) || /Type\s*\/\s*XObject/i.test(dict)) {
+      if (/Filter\s*\/\s*DCTDecode/i.test(dict)) {
+        images.push({ buffer: rawStream, ext: '.jpg' });
+      } else {
+        const widthMatch = dict.match(/\/Width\s+(\d+)/);
+        const heightMatch = dict.match(/\/Height\s+(\d+)/);
+        const width = widthMatch ? parseInt(widthMatch[1], 10) : 0;
+        const height = heightMatch ? parseInt(heightMatch[1], 10) : 0;
+        let pixelData = rawStream;
+        if (/Filter\s*\/\s*FlateDecode/i.test(dict)) {
+          try { pixelData = zlib.inflateSync(rawStream); } catch {}
+        }
+        if (width > 0 && height > 0) {
+          try {
+            const bmp = encodeBmpBuffer(width, height, pixelData);
+            images.push({ buffer: bmp, ext: '.bmp' });
+          } catch {}
+        }
+      }
+    }
+  }
+  return images;
+}
+
 class SmartOCRProvider extends OCRProvider {
   constructor() {
     super('SmartOCR');
@@ -320,46 +390,178 @@ class SmartOCRProvider extends OCRProvider {
     // ── PATH 2: Image file — Tesseract primary, Gemini if confidence low ──────
     if (IMAGE_EXTS.has(ext)) {
       console.log(`[SmartOCR] PATH 2: Image file (${ext}) — running Tesseract (primary)`);
-
-      const tessResult = await this._runTesseract(filePath);
-
-      if (tessResult.confidence >= LOW_CONFIDENCE_THRESHOLD) {
-        console.log(`[SmartOCR] Tesseract confidence ${(tessResult.confidence * 100).toFixed(1)}% ≥ ${LOW_CONFIDENCE_THRESHOLD * 100}% — accepting result`);
-        return { ...tessResult, path: 'tesseract_primary' };
-      }
-
-      // Low confidence — escalate to Gemini Vision
-      console.warn(
-        `[SmartOCR] Tesseract confidence ${(tessResult.confidence * 100).toFixed(1)}% < ${LOW_CONFIDENCE_THRESHOLD * 100}% — escalating to Gemini Vision`
-      );
-      const geminiResult = await this._runGemini(filePath);
-      if (geminiResult) {
-        return { ...geminiResult, path: 'tesseract_low_confidence_gemini_escalation' };
-      }
-
-      // Gemini also failed — return Tesseract result anyway (best effort)
-      console.warn('[SmartOCR] Gemini escalation failed — returning Tesseract result as best effort');
-      return { ...tessResult, path: 'tesseract_primary_gemini_failed' };
+      return this._processImageFile(filePath);
     }
 
-    // ── PATH 3: Unknown extension — try direct read then Tesseract ────────────
-    console.log(`[SmartOCR] PATH 3: Unknown extension (${ext || 'none'}) — attempting direct read`);
+    // ── PATH 2.5: PDF documents (digital native fast path OR scanned image rendering) ──
+    if (ext === '.pdf') {
+      return this._processPdfDocument(filePath);
+    }
+
+    // ── PATH 3: Unknown extension — never decode binary as text ───────────────
+    console.log(`[SmartOCR] PATH 3: Unknown extension (${ext || 'none'}) — inspecting file`);
     try {
-      const text = fs.readFileSync(filePath, 'utf8').trim();
-      if (text.length > 20) {
-        return {
-          text,
-          confidence: 0.90,
-          blocks: [{ text, confidence: 0.90 }],
-          provider: 'SmartOCR_DirectFallback',
-          version: 'direct_fs_fallback_v1.0',
-          path: 'unknown_ext_direct_read',
-        };
+      const buffer = fs.readFileSync(filePath);
+      // Binary check: if file starts with PDF signature or contains null bytes, do not decode as text
+      const isBinary = buffer.slice(0, 4).toString('utf8') === '%PDF' || buffer.slice(0, 1024).includes(0x00);
+      if (!isBinary) {
+        const text = buffer.toString('utf8').trim();
+        if (text.length > 20) {
+          return {
+            text,
+            confidence: 0.90,
+            blocks: [{ text, confidence: 0.90 }],
+            provider: 'SmartOCR_DirectFallback',
+            version: 'direct_fs_fallback_v1.0',
+            path: 'unknown_ext_direct_read',
+          };
+        }
+      } else if (buffer.slice(0, 4).toString('utf8') === '%PDF') {
+        return this._processPdfDocument(filePath);
       }
     } catch {}
 
     const tessResult = await this._runTesseract(filePath);
+    if (!tessResult.text || tessResult.text === 'Scanned clinical document' || tessResult.confidence <= 0.50) {
+      return {
+        text: 'Unreadable document requiring human clinical review',
+        confidence: 0.30,
+        blocks: [],
+        provider: 'SmartOCR_UnreadableFallback',
+        version: 'unreadable_fallback_v1.0',
+        path: 'unknown_ext_unreadable_fallback',
+      };
+    }
     return { ...tessResult, path: 'unknown_ext_tesseract' };
+  }
+
+  // ── Helper: Process image file with Tesseract primary + Gemini escalation ───
+  async _processImageFile(imagePath) {
+    const tessResult = await this._runTesseract(imagePath);
+
+    if (tessResult.confidence >= LOW_CONFIDENCE_THRESHOLD && tessResult.text && tessResult.text !== 'Scanned clinical document') {
+      console.log(`[SmartOCR] Tesseract confidence ${(tessResult.confidence * 100).toFixed(1)}% ≥ ${LOW_CONFIDENCE_THRESHOLD * 100}% — accepting result`);
+      return { ...tessResult, path: 'tesseract_primary' };
+    }
+
+    // Low confidence — escalate to Gemini Vision
+    console.warn(
+      `[SmartOCR] Tesseract confidence ${(tessResult.confidence * 100).toFixed(1)}% < ${LOW_CONFIDENCE_THRESHOLD * 100}% — escalating to Gemini Vision`
+    );
+    const geminiResult = await this._runGemini(imagePath);
+    if (geminiResult) {
+      return { ...geminiResult, path: 'tesseract_low_confidence_gemini_escalation' };
+    }
+
+    // If both failed or gave unreadable placeholder, return confidence 0.30 for human review
+    if (!tessResult.text || tessResult.text === 'Scanned clinical document') {
+      return {
+        text: 'Unreadable image document requiring human clinical review',
+        confidence: 0.30,
+        blocks: [],
+        provider: 'SmartOCR_UnreadableFallback',
+        version: 'unreadable_fallback_v1.0',
+        path: 'image_unreadable_fallback',
+      };
+    }
+
+    return { ...tessResult, path: 'tesseract_primary_gemini_failed' };
+  }
+
+  // ── Helper: Process PDF document (digital text fast-path OR render to image) ──
+  async _processPdfDocument(pdfPath) {
+    try {
+      // 1. Check for digital native PDF text layer (<20ms fast-path)
+      let pdfRouter = null;
+      try {
+        pdfRouter = require('./pdfRouter');
+      } catch {}
+
+      if (pdfRouter) {
+        const isDigital = await pdfRouter.isDigitalNativePDF(pdfPath);
+        if (isDigital) {
+          const extracted = await pdfRouter.extractDigitalPDFText(pdfPath);
+          if (extracted?.success && extracted.text && !extracted.text.startsWith('%PDF')) {
+            console.log(`[SmartOCR] Digital native PDF fast-path extraction succeeded (${extracted.text.length} chars)`);
+            return {
+              text: extracted.text,
+              confidence: 1.0,
+              blocks: [{ text: extracted.text, confidence: 1.0 }],
+              provider: extracted.provider || 'DigitalPDFTextRouter',
+              version: extracted.version || 'pdf_native_parser_v1.0',
+              path: 'pdf_digital_fastpath',
+            };
+          }
+        }
+      }
+
+      // 2. Scanned PDF (no digital text layer) — extract/render page images
+      console.log(`[SmartOCR] Scanned PDF detected (${pdfPath}) — rendering pages to images for OCR`);
+      const pdfBuffer = fs.readFileSync(pdfPath);
+      const extractedImages = extractImagesFromPdfBuffer(pdfBuffer);
+
+      if (extractedImages.length > 0) {
+        const tempFiles = [];
+        try {
+          const imageResults = [];
+          for (let i = 0; i < extractedImages.length; i++) {
+            const img = extractedImages[i];
+            const tempPath = path.join(os.tmpdir(), `pdf_render_${Date.now()}_${i}${img.ext}`);
+            fs.writeFileSync(tempPath, img.buffer);
+            tempFiles.push(tempPath);
+
+            const pageResult = await this._processImageFile(tempPath);
+            imageResults.push(pageResult);
+          }
+
+          const validResults = imageResults.filter((r) => r.text && r.text !== 'Scanned clinical document' && !r.text.startsWith('Unreadable'));
+          if (validResults.length > 0) {
+            const combinedText = validResults.map((r) => r.text).join('\n\n');
+            const avgConf = validResults.reduce((sum, r) => sum + r.confidence, 0) / validResults.length;
+            return {
+              text: combinedText,
+              confidence: avgConf,
+              blocks: [{ text: combinedText, confidence: avgConf }],
+              provider: 'SmartOCR_ScannedPDF_ImagePipeline',
+              version: 'scanned_pdf_image_v1.0',
+              path: 'scanned_pdf_rendered_images',
+            };
+          }
+        } finally {
+          for (const tmp of tempFiles) {
+            try { fs.unlinkSync(tmp); } catch {}
+          }
+        }
+      }
+
+      // 3. If image extraction produced no readable text, escalate full PDF to Gemini Vision
+      console.warn(`[SmartOCR] No readable images extracted from scanned PDF — attempting Gemini Vision on PDF`);
+      const geminiPdfResult = await this._runGemini(pdfPath);
+      if (geminiPdfResult && !geminiPdfResult.text.startsWith('%PDF')) {
+        return { ...geminiPdfResult, path: 'scanned_pdf_gemini_escalation' };
+      }
+
+      // 4. If file cannot be read at all, return confidence 0.30 for human review
+      console.warn(`[SmartOCR] Scanned PDF could not be read by OCR pipeline — routing to human review`);
+      return {
+        text: 'Unreadable scanned PDF requiring human clinical review',
+        confidence: 0.30,
+        blocks: [],
+        provider: 'SmartOCR_UnreadableFallback',
+        version: 'unreadable_fallback_v1.0',
+        path: 'scanned_pdf_unreadable_fallback',
+      };
+    } catch (err) {
+      console.warn(`[SmartOCR] PDF processing error: ${err.message}`);
+      return {
+        text: 'Unreadable scanned PDF requiring human clinical review',
+        confidence: 0.30,
+        blocks: [],
+        provider: 'SmartOCR_UnreadableFallback',
+        version: 'unreadable_fallback_v1.0',
+        path: 'scanned_pdf_error_fallback',
+      };
+    }
   }
 
   // ── Internal: run Tesseract ────────────────────────────────────────────────
@@ -404,7 +606,11 @@ class SmartOCRProvider extends OCRProvider {
 
     try {
       const ext = path.extname(filePath).toLowerCase();
-      const mimeType = (ext === '.jpg' || ext === '.jpeg') ? 'image/jpeg' : 'image/png';
+      let mimeType = 'image/png';
+      if (ext === '.jpg' || ext === '.jpeg') mimeType = 'image/jpeg';
+      else if (ext === '.bmp') mimeType = 'image/bmp';
+      else if (ext === '.pdf') mimeType = 'application/pdf';
+
       const base64Data = fs.readFileSync(filePath).toString('base64');
 
       const { GoogleGenAI } = require('@google/genai');
@@ -417,7 +623,7 @@ class SmartOCRProvider extends OCRProvider {
           const response = await ai.models.generateContent({
             model: modelName,
             contents: [
-              'Transcribe all text from this medical image including handwritten notes, doctor prescriptions, dosage instructions, and lab numbers exactly as written with full dosing frequencies and schedules. Return raw transcribed text only.',
+              'Transcribe all text from this medical document including handwritten notes, doctor prescriptions, dosage instructions, and lab numbers exactly as written with full dosing frequencies and schedules. Return raw transcribed text only.',
               { inlineData: { data: base64Data, mimeType } },
             ],
           });
