@@ -7,6 +7,7 @@ const { isDigitalNativePDF, extractDigitalPDFText } = require("../ocr/pdfRouter"
 const { detectHandwriting } = require("../ocr/handwritingDetector");
 const { wrapDocumentPayloadWithProvenance } = require("../ocr/provenanceEngine");
 const { validate_biological_bounds, validate_drug_with_nih_rxnorm } = require("../tools/patientTools");
+const { computeReaderAgreement } = require("../ocr/dualReaderEngine");
 const llmGateway = require("../services/llmGateway");
 
 // 1. File Validation
@@ -110,17 +111,18 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
       }
     }
 
-    // Branch 2: Image Preprocessing & Handwriting Detection
+    let secondaryRawText = "";
+
+    // Branch 2: Image Preprocessing & Dual-Reader Execution
     if (!rawText) {
       const hwCheck = await detectHandwriting(filePath);
       let provider = null;
 
       if (hwCheck.isHandwritten) {
-        // Sub-Branch A: Mostly Handwritten? YES -> Multimodal Vision Provider (Gemini / Groq Vision)
+        // Primary Reader: Multimodal Vision Provider (Gemini 3.1)
         const visionTarget = process.env.GEMINI_API_KEY ? 'gemini' : (process.env.OCR_PROVIDER || 'groq');
         provider = getOCRProvider(filePath, visionTarget);
       } else {
-        // Sub-Branch B: Mostly Handwritten? NO -> OCR Provider Factory (Tesseract / Azure)
         provider = getOCRProvider(filePath);
       }
 
@@ -132,14 +134,27 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
         version: ocrRes.version,
         isHandwritten: hwCheck.isHandwritten,
       };
+
+      // Step 2: Second Reader execution (Dual-Reader Check)
+      // If primary reader was Gemini Vision, read secondarily with Tesseract for agreement verification
+      if (ocrRes.provider?.includes('GeminiVision')) {
+        try {
+          const tesseract = new TesseractProvider();
+          const tessRes = await tesseract.processDocument(filePath);
+          secondaryRawText = tessRes.text || "";
+        } catch {
+          secondaryRawText = "";
+        }
+      }
     }
 
-    console.log(`🤖 [OCR PROVIDER]: ${ocrMeta?.provider || 'Unknown'} | Length: ${rawText.length} chars | Handwritten: ${ocrMeta?.isHandwritten}`);
+    console.log(`🤖 [OCR PROVIDER]: ${ocrMeta?.provider || 'Unknown'} | Length: ${rawText.length} chars | Secondary Length: ${secondaryRawText.length}`);
     console.log(`🤖 [OCR RAW EXTRACTED TEXT]:\n${rawText.slice(0, 1000)}`);
 
     if (!rawText || !rawText.trim()) {
       return { success: false, error: "OCR produced empty text" };
     }
+
 
     // Stage 4: Document Classification
     const docCategory = classifyDocument(rawText);
@@ -231,8 +246,21 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
       }
     }
 
+    // Step 2 Agreement Check: Compare Primary & Secondary Reader
+    let dualReaderAgreement = null;
+    if (secondaryRawText) {
+      dualReaderAgreement = computeReaderAgreement(rawText, secondaryRawText, structured.medications || []);
+      console.log(`🤝 [DUAL-READER AGREEMENT]: Score: ${(dualReaderAgreement.agreementScore * 100).toFixed(1)}% | Overlap: ${(dualReaderAgreement.tokenOverlap * 100).toFixed(1)}% | Requires Review: ${dualReaderAgreement.requiresHumanReview}`);
+    }
+
     // Stage 7: Wrap Payload with Field Provenance & Versioning Tags
     const wrapped = wrapDocumentPayloadWithProvenance(structured, ocrMeta);
+
+    // If readers disagree, lower the score and penalize confidence
+    if (dualReaderAgreement && dualReaderAgreement.requiresHumanReview) {
+      wrapped.confidence_summary.overall_confidence = Math.max(25, wrapped.confidence_summary.overall_confidence - Math.round(dualReaderAgreement.confidencePenalty * 100));
+      wrapped.confidence_summary.medication_confidence = Math.max(30, wrapped.confidence_summary.medication_confidence - 30);
+    }
 
     if (hasUnrecognizedDrug || weeklyDosingViolation) {
       wrapped.confidence_summary.medication_confidence = 30;
@@ -248,6 +276,20 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
       });
     }
 
+    if (dualReaderAgreement && dualReaderAgreement.requiresHumanReview) {
+      allViolations.push({
+        test_name: 'DualReaderAgreementCheck',
+        severity: 'READER_DISAGREEMENT_WARNING',
+        message: dualReaderAgreement.reason,
+      });
+    }
+
+    const needsReview = rangeViolations.length > 0 ||
+      (ocrMeta?.confidence || 0.95) < 0.85 ||
+      hasUnrecognizedDrug ||
+      weeklyDosingViolation ||
+      (dualReaderAgreement && dualReaderAgreement.requiresHumanReview);
+
     return {
       success: true,
       document_category: docCategory,
@@ -259,7 +301,8 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
       confidence_summary: wrapped.confidence_summary,
       validation_violations: allViolations,
       parser: ocrMeta?.provider || "TesseractOCR",
-      requires_human_review: rangeViolations.length > 0 || (ocrMeta?.confidence || 0.95) < 0.85 || hasUnrecognizedDrug || weeklyDosingViolation,
+      requires_human_review: needsReview,
+      dual_reader: dualReaderAgreement,
       drug_validation: drugValidationResults,
       unrecognized_drug_detected: hasUnrecognizedDrug,
       weekly_dosing_violation: weeklyDosingViolation,
@@ -272,5 +315,6 @@ async function processUploadedDocument(filePath, apiKeyOverride, modelOverride) 
     };
   }
 }
+
 
 module.exports = { processUploadedDocument, classifyDocument };

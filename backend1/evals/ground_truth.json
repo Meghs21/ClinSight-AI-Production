@@ -1,0 +1,213 @@
+{
+  "1.jpg": {
+    "document_type": "PRESCRIPTION",
+    "medications": ["Amoxicillin 500mg"],
+    "diagnosis": []
+  },
+  "10.jpg": {
+    "document_type": "CONSULTATION_NOTE",
+    "patient_name": "CH. SAMUEL",
+    "medications": [],
+    "diagnosis": ["Severe sepsis with MODS", "liver abscess", "aspiration pneumonia"]
+  },
+  "100.jpg": {
+    "document_type": "PRESCRIPTION",
+    "medications": ["Ext. Cannabis Ind.", "Croton Chloral"],
+    "diagnosis": ["Sick headache"]
+  },
+  "101.jpg": {
+    "document_type": "PRESCRIPTION",
+    "medications": ["Tab Dolo 650", "Tab Rantac 150", "Tab BC"],
+    "diagnosis": []
+  },
+  "102.jpg": {
+    "document_type": "CONSULTATION_NOTE",
+    "medications": [],
+    "diagnosis": ["IUD string check", "Menorrhagia"]
+  },
+  "103.jpg": {
+    "document_type": "PRESCRIPTION",
+    "medications": ["Cocaine", "Ung. Resorcin comp"],
+    "diagnosis": []
+  },
+  "104.jpg": {
+    "document_type": "CONSULTATION_NOTE",
+    "medications": [],
+    "diagnosis": ["Erosion lat. SCC", "Retracted TM", "CSOM"]
+  },
+  "105.jpg": {
+    "document_type": "PRESCRIPTION",
+    "medications": [
+      "Tab Hydroxychloroquine 400mg",
+      "Tab Vitamin C 1g",
+      "Tab Zinc 50mg",
+      "Tab Crocin/Calpol 650mg",
+      "Tab Cetirizine 10mg",
+      "Syrup Alex"
+    ],
+    "diagnosis": ["COVID 19 Preventive / Mild Symptoms"]
+  },
+  "106.jpg": {
+    "document_type": "PRESCRIPTION",
+    "medications": ["Tab TRICLOCK 100", "Tab Novam 5mg", "Tab Argenta"],
+    "diagnosis": []
+  },
+  "107.jpg": {
+    "document_type": "PRESCRIPTION",
+    "medications": ["Codeinae Sulph.", "Ext. Sanguinariae", "Syrupi Yerba"],
+    "diagnosis": []
+  },
+  "108.jpg": {
+    "document_type": "PRESCRIPTION",
+    "patient_name": "LAXMI",
+    "medications": [
+      "Inj Diclofenac",
+      "Inj Rantac",
+      "ORS",
+      "Tab Diclo",
+      "Tab Rantac"
+    ],
+    "diagnosis": ["Cholecystitis", "Cholelithiasis", "Pyocele of GB", "HTN"]
+  },
+  "109.jpg": {
+    "document_type": "PRESCRIPTION",
+    "medications": [
+      "Stalevo 125/31.25/200",
+      "Levodopa",
+      "Carbidopa",
+      "Entacapone"
+    ],
+    "diagnosis": ["Parkinsonism"]
+  },
+  "11.jpg": {
+    "document_type": "PRESCRIPTION",
+    "patient_name": "Seerat",
+    "medications": [
+      "Syp Sumol DS",
+      "Syp Mucolite LS",
+      "Tab Meftal-P"
+    ],
+    "diagnosis": ["Fever", "ARI"]
+  },
+  "110.jpg": {
+    "document_type": "CONSULTATION_NOTE",
+    "medications": [],
+    "diagnosis": ["Anovulatory cycles", "LSIL"]
+  },
+  "111.jpg": {
+    "document_type": "PRESCRIPTION",
+    "patient_name": "Aarna",
+    "medications": [
+      "Syrup Calpol",
+      "Syrup Enceph",
+      "Syrup Alk M",
+      "Nebulization Budecort"
+    ],
+    "diagnosis": ["Fever", "Cold"]
+  },
+  "112.jpg": {
+    "document_type": "PRESCRIPTION",
+    "patient_name": "Melissa Austin",
+    "medications": ["Amoxil Susp. 125mg"],
+    "diagnosis": []
+  },
+  "113.jpg": {
+    "document_type": "PRESCRIPTION",
+    "patient_name": "Lolita Alvarez",
+    "medications": ["FeSO4 tab", "Ascorbic Acid 100mg"],
+    "diagnosis": ["Iron Deficiency Anemia"]
+  },
+  "114.jpg": {
+    "document_type": "PRESCRIPTION",
+    "patient_name": "Harry Hypertensive",
+    "medications": ["Losartan 50 milligram Tabs"],
+    "diagnosis": ["Hypertension"]
+  },
+  "115.jpg": {
+    "document_type": "PRESCRIPTION",
+    "patient_name": "VIJAYALAKSHMI",
+    "medications": [
+      "Inj Liposomal Amphotericin 50mg",
+      "Inj Amphotericin Conventional 50mg"
+    ],
+    "diagnosis": ["Mucormycosis"]
+  },
+  "116.jpg": {
+    "document_type": "PRESCRIPTION",
+    "patient_name": "Uday Kumar",
+    "medications": [
+      "Inj Liposomal Amphotericin B"
+    ],
+    "diagnosis": ["Mucormycosis", "Meningitis"]
+  },
+  "117.jpg": {
+    "document_type": "PRESCRIPTION",
+    "patient_name": "F. Aslam",
+    "medications": ["NovoRapid FlexPen"],
+    "diagnosis": ["Diabetes"]
+  },
+  "118.jpg": {
+    "document_type": "PRESCRIPTION",
+    "medications": ["Calamose", "Ferolia", "Nasal drops"],
+    "diagnosis": []
+  },
+  "119.jpg": {
+    "document_type": "PRESCRIPTION",
+    "patient_name": "LAXMI",
+    "medications": [
+      "Inj Diclofenac 75mg",
+      "Inj Pantop 40mg"
+    ],
+    "diagnosis": ["Cholelithiasis with Gallbladder Malignancy", "T2DM", "HTN"]
+  },
+  "12.jpg": {
+    "document_type": "CONSULTATION_NOTE",
+    "medications": ["Novalgin"],
+    "diagnosis": []
+  },
+  "120.jpg": {
+    "document_type": "PRESCRIPTION",
+    "patient_name": "Wm. Burns",
+    "medications": ["Spir. Fermenti"],
+    "diagnosis": []
+  },
+  "121.jpg": {
+    "document_type": "PRESCRIPTION",
+    "medications": ["Zolpidem 10mg"],
+    "diagnosis": ["Insomnia"]
+  },
+  "122.jpg": {
+    "document_type": "PRESCRIPTION",
+    "medications": [
+      "Nicardia R 20",
+      "Lasix 40",
+      "Rantac 150",
+      "Emeset 4",
+      "Dompan"
+    ],
+    "diagnosis": ["Hypertension"]
+  },
+  "123.jpg": {
+    "document_type": "PRESCRIPTION",
+    "patient_name": "Mrs. Belinski",
+    "medications": ["Heroin Hydroch", "Creosote"],
+    "diagnosis": ["Cough"]
+  },
+  "124.jpg": {
+    "document_type": "PRESCRIPTION",
+    "patient_name": "Dalia Kundu",
+    "medications": [
+      "Inj Xgeva 120",
+      "Tab Dexa 4",
+      "Tab Ondan 4",
+      "Tab Ultracet"
+    ],
+    "diagnosis": ["Metastatic Breast Cancer (MBC)", "Bone/Lung/Liver metastasis"]
+  },
+  "125.jpg": {
+    "document_type": "CONSULTATION_NOTE",
+    "patient_name": "Sheeba Malik",
+    "medications": [],
+    "diagnosis": ["Sciatica with Prolapse disc"]
+  }
+}

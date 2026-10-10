@@ -1,0 +1,133 @@
+{
+  "id": "P003",
+  "name": "Arjun Sharma",
+  "age": 29,
+  "gender": "Male",
+  "bloodGroup": "A+",
+  "city": "Bangalore",
+  "smoking": "Non-smoker",
+  "alcohol": "Social",
+  "email": "arjun.sharma@example.com",
+  "status": "stable",
+  "registeredAt": "Kathir Memorial Hospital",
+  "primaryDiagnosis": [
+    "Bronchial Asthma (J45.1)",
+    "Allergic Rhinitis (J30.1)"
+  ],
+  "secondaryDiagnosis": [],
+  "allergies": [
+    "Dust mites",
+    "Pollen",
+    "NSAIDs — bronchospasm"
+  ],
+  "medications": [
+    {
+      "name": "Fluticasone/Salmeterol (Seretide 250/25)",
+      "dose": "250/25 mcg",
+      "frequency": "BID",
+      "route": "Inhaler",
+      "since": "2023-07-01",
+      "active": true
+    },
+    {
+      "name": "Salbutamol inhaler (rescue)",
+      "dose": "100 mcg",
+      "frequency": "PRN",
+      "route": "Inhaler",
+      "since": "2023-07-01",
+      "active": true
+    },
+    {
+      "name": "Montelukast",
+      "dose": "10 mg",
+      "frequency": "QD",
+      "route": "PO",
+      "since": "2024-01-15",
+      "active": true
+    }
+  ],
+  "visits": [
+    {
+      "date": "2026-03-02",
+      "doctor": "Dr. Sumathy Iyer",
+      "department": "Pulmonology",
+      "visitType": "OPD",
+      "chiefComplaint": "Worsening breathlessness, nocturnal cough for 3 days",
+      "clinicalNote": "Moderate persistent asthma exacerbation. SpO2 94% on RA. Bilateral wheeze. Peak flow 65% predicted.",
+      "plan": "Nebulised salbutamol, prednisolone 40 mg x5 days, double ICS dose, review in 1 week.",
+      "vitals": {
+        "bp": "118/76",
+        "pulse": 102,
+        "weight": 68
+      }
+    },
+    {
+      "date": "2025-12-05",
+      "doctor": "Dr. Sumathy Iyer",
+      "department": "Pulmonology",
+      "visitType": "OPD",
+      "chiefComplaint": "Annual asthma review",
+      "clinicalNote": "Well controlled on current regimen. No nocturnal symptoms. Good technique.",
+      "plan": "Continue Seretide 250/25 BD. Annual spirometry booked.",
+      "vitals": {
+        "bp": "116/74",
+        "pulse": 76,
+        "weight": 67.5
+      }
+    }
+  ],
+  "labResults": {
+    "Peak Flow (% predicted)": [
+      {
+        "value": "65",
+        "unit": "%",
+        "status": "low",
+        "referenceRange": ">80",
+        "date": "2026-03-02"
+      }
+    ],
+    "SpO2": [
+      {
+        "value": "94",
+        "unit": "%",
+        "status": "low",
+        "referenceRange": ">95",
+        "date": "2026-03-02"
+      }
+    ],
+    "IgE (Total)": [
+      {
+        "value": "420",
+        "unit": "IU/mL",
+        "status": "high",
+        "referenceRange": "<150",
+        "date": "2025-12-05"
+      }
+    ],
+    "Eosinophils": [
+      {
+        "value": "620",
+        "unit": "cells/μL",
+        "status": "high",
+        "referenceRange": "<400",
+        "date": "2025-12-05"
+      }
+    ],
+    "Spirometry FEV1": [
+      {
+        "value": "68",
+        "unit": "%",
+        "status": "low",
+        "referenceRange": ">80",
+        "date": "2025-12-05"
+      }
+    ]
+  },
+  "flags": [
+    "Peak Flow (% predicted): 65 % (low)",
+    "SpO2: 94 % (low)",
+    "IgE (Total): 420 IU/mL (high)",
+    "Eosinophils: 620 cells/μL (high)",
+    "Spirometry FEV1: 68 % (low)"
+  ]
+}

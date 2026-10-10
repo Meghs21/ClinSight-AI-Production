@@ -15,13 +15,15 @@ let index = null;
 const indexedPatientIds = new Set();
 const DIMENSION = 1536;
 
-let pgPool = null;
-if (process.env.DATABASE_URL) {
+let supabase = null;
+if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
   try {
-    const { Pool } = require('pg');
-    pgPool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const { createClient } = require('@supabase/supabase-js');
+    supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
   } catch {
-    pgPool = null;
+    supabase = null;
   }
 }
 
@@ -255,15 +257,21 @@ async function insertDocsDeduplicated(docs) {
       existingKeys.add(key);
       insertedCount++;
 
-      // Also persist to PostgreSQL pgvector if pool is active
-      if (pgPool) {
+      // Also persist to PostgreSQL pgvector if Supabase client is active
+      if (supabase) {
         try {
+          // Format vector as string for pgvector insertion
           const vectorStr = `[${vector.join(',')}]`;
-          await pgPool.query(
-            `INSERT INTO document_embeddings (patient_id, section, doc_date, content, embedding)
-             VALUES ($1, $2, $3, $4, $5::vector)`,
-            [doc.patientId, doc.section, doc.date || '', doc.text, vectorStr]
-          );
+          const { error } = await supabase.from('document_embeddings').insert({
+            patient_id: doc.patientId,
+            section: doc.section,
+            doc_date: doc.date || null,
+            content: doc.text,
+            embedding: vectorStr
+          });
+          if (error) {
+            console.warn(`[Supabase RAG Sync Error] ${error.message}`);
+          }
         } catch (err) {
           // Warning logged silently to not interrupt local indexing
         }

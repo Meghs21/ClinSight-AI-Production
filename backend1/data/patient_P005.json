@@ -1,0 +1,151 @@
+{
+  "id": "P005",
+  "name": "Vikram Reddy",
+  "age": 42,
+  "gender": "Male",
+  "bloodGroup": "O-",
+  "city": "Mumbai",
+  "smoking": "Smoker (10 pack-years)",
+  "alcohol": "Moderate",
+  "email": "vikram.reddy@example.com",
+  "status": "monitoring",
+  "registeredAt": "Kathir Memorial Hospital",
+  "primaryDiagnosis": [
+    "Hypertension (I10)",
+    "Metabolic Syndrome (E88.81)"
+  ],
+  "secondaryDiagnosis": [
+    "Non-alcoholic Fatty Liver Disease (K76.0)"
+  ],
+  "allergies": [
+    "None known"
+  ],
+  "medications": [
+    {
+      "name": "Telmisartan",
+      "dose": "40 mg",
+      "frequency": "QD",
+      "route": "PO",
+      "since": "2025-01-10",
+      "active": true
+    },
+    {
+      "name": "Amlodipine",
+      "dose": "5 mg",
+      "frequency": "QD",
+      "route": "PO",
+      "since": "2026-03-10",
+      "active": true
+    },
+    {
+      "name": "Fenofibrate",
+      "dose": "145 mg",
+      "frequency": "QD",
+      "route": "PO",
+      "since": "2026-03-10",
+      "active": true
+    }
+  ],
+  "visits": [
+    {
+      "date": "2026-03-10",
+      "doctor": "Dr. Ananya Ghosh",
+      "department": "Cardiology",
+      "visitType": "OPD",
+      "chiefComplaint": "Occasional headaches, work stress, check-up",
+      "clinicalNote": "BP 158/96 despite current medication. BMI 31. Waist 102 cm. Fatty liver on USG. Triglycerides 260 mg/dL. Fasting glucose 118 mg/dL (pre-diabetic).",
+      "plan": "Add Amlodipine 5mg, lifestyle intensification, smoking cessation referral, repeat fasting glucose in 3 months.",
+      "vitals": {
+        "bp": "158/96",
+        "pulse": 84,
+        "weight": 95
+      }
+    },
+    {
+      "date": "2025-09-22",
+      "doctor": "Dr. Ananya Ghosh",
+      "department": "Cardiology",
+      "visitType": "OPD",
+      "chiefComplaint": "BP follow-up",
+      "clinicalNote": "BP 148/90 on Telmisartan. Weight unchanged. Smoker — counselled.",
+      "plan": "Continue Telmisartan, increase exercise, diet review.",
+      "vitals": {
+        "bp": "148/90",
+        "pulse": 80,
+        "weight": 94.5
+      }
+    }
+  ],
+  "labResults": {
+    "Fasting Blood Glucose": [
+      {
+        "value": "118",
+        "unit": "mg/dL",
+        "status": "pre-diabetic",
+        "referenceRange": "70-100",
+        "date": "2026-03-10"
+      }
+    ],
+    "Triglycerides": [
+      {
+        "value": "260",
+        "unit": "mg/dL",
+        "status": "high",
+        "referenceRange": "<150",
+        "date": "2026-03-10"
+      }
+    ],
+    "LDL Cholesterol": [
+      {
+        "value": "148",
+        "unit": "mg/dL",
+        "status": "high",
+        "referenceRange": "<100",
+        "date": "2026-03-10"
+      }
+    ],
+    "HDL Cholesterol": [
+      {
+        "value": "36",
+        "unit": "mg/dL",
+        "status": "low",
+        "referenceRange": ">40",
+        "date": "2026-03-10"
+      }
+    ],
+    "ALT (SGPT)": [
+      {
+        "value": "68",
+        "unit": "U/L",
+        "status": "high",
+        "referenceRange": "<40",
+        "date": "2026-03-10"
+      }
+    ],
+    "AST (SGOT)": [
+      {
+        "value": "52",
+        "unit": "U/L",
+        "status": "high",
+        "referenceRange": "<40",
+        "date": "2026-03-10"
+      }
+    ],
+    "BMI": [
+      {
+        "value": "31",
+        "unit": "kg/m²",
+        "status": "obese",
+        "referenceRange": "18.5-24.9",
+        "date": "2026-03-10"
+      }
+    ]
+  },
+  "flags": [
+    "Triglycerides: 260 mg/dL (high)",
+    "LDL Cholesterol: 148 mg/dL (high)",
+    "HDL Cholesterol: 36 mg/dL (low)",
+    "ALT (SGPT): 68 U/L (high)",
+    "AST (SGOT): 52 U/L (high)"
+  ]
+}

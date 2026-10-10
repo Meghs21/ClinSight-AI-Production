@@ -4,7 +4,6 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Groq = require('groq-sdk');
-const OpenAI = require('openai');
 
 class LLMGateway {
   getGeminiClient(apiKeyOverride) {
@@ -19,30 +18,25 @@ class LLMGateway {
     return new Groq({ apiKey: key });
   }
 
-  getOpenAIClient(apiKeyOverride) {
-    const key = apiKeyOverride || process.env.OPENAI_API_KEY;
-    if (!key) return null;
-    return new OpenAI({ apiKey: key });
-  }
-
   async generateText({ prompt, systemPrompt, provider = 'auto', apiKey, model }) {
-    // 1. Try Gemini
+    // 1. Try Gemini (gemini-2.5-flash or gemini-3.1-flash-lite)
     if (provider === 'gemini' || provider === 'auto') {
       const genAI = this.getGeminiClient(apiKey);
       if (genAI) {
         try {
           const m = genAI.getGenerativeModel({
-            model: model || 'gemini-1.5-flash',
+            model: model || 'gemini-2.5-flash',
             systemInstruction: systemPrompt || undefined,
           });
           const res = await m.generateContent(prompt);
           const text = res.response?.text();
-          if (text) return { text, provider: 'gemini', model: model || 'gemini-1.5-flash' };
+          if (text) return { text, provider: 'gemini', model: model || 'gemini-2.5-flash' };
         } catch (err) {
           console.warn('Gemini gateway call failed, attempting fallback:', err.message);
         }
       }
     }
+
 
     // 2. Try Groq
     if (provider === 'groq' || provider === 'auto') {

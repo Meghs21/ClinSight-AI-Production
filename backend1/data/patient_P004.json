@@ -1,0 +1,138 @@
+{
+  "id": "P004",
+  "name": "Saraswati Devi",
+  "age": 74,
+  "gender": "Female",
+  "bloodGroup": "AB+",
+  "city": "Hyderabad",
+  "smoking": "Non-smoker",
+  "alcohol": "None",
+  "email": "saraswati.devi@example.com",
+  "status": "stable",
+  "registeredAt": "Kathir Memorial Hospital",
+  "primaryDiagnosis": [
+    "Osteoporosis with fracture risk (M81.0)",
+    "CKD Stage 3 (N18.3)"
+  ],
+  "secondaryDiagnosis": [
+    "Hypothyroidism (E03.9)",
+    "Vitamin D Deficiency (E55.9)"
+  ],
+  "allergies": [
+    "Sulpha drugs — rash"
+  ],
+  "medications": [
+    {
+      "name": "Levothyroxine",
+      "dose": "75 mcg",
+      "frequency": "QD morning",
+      "route": "PO",
+      "since": "2020-03-10",
+      "active": true
+    },
+    {
+      "name": "Alendronate",
+      "dose": "70 mg",
+      "frequency": "Weekly",
+      "route": "PO",
+      "since": "2026-02-20",
+      "active": true
+    },
+    {
+      "name": "Calcium + Vitamin D3",
+      "dose": "500mg+400IU",
+      "frequency": "BID",
+      "route": "PO",
+      "since": "2026-02-20",
+      "active": true
+    },
+    {
+      "name": "Calcitriol",
+      "dose": "0.25 mcg",
+      "frequency": "QD",
+      "route": "PO",
+      "since": "2026-02-20",
+      "active": true
+    }
+  ],
+  "visits": [
+    {
+      "date": "2026-02-20",
+      "doctor": "Dr. Karthik Balasubramanian",
+      "department": "General Medicine",
+      "visitType": "OPD",
+      "chiefComplaint": "Back pain, generalised weakness, increased fatigue",
+      "clinicalNote": "DEXA T-score -2.8 (osteoporosis). eGFR 38. TSH elevated at 8.2 mIU/L — undertreated hypothyroid. Vitamin D critically low.",
+      "plan": "Increase levothyroxine to 75 mcg, Calcium+D3, Alendronate 70mg weekly, renal diet advice.",
+      "vitals": {
+        "bp": "138/84",
+        "pulse": 64,
+        "weight": 54.5
+      }
+    }
+  ],
+  "labResults": {
+    "eGFR": [
+      {
+        "value": "38",
+        "unit": "mL/min/1.73m²",
+        "status": "low",
+        "referenceRange": ">60",
+        "date": "2026-02-20"
+      }
+    ],
+    "TSH": [
+      {
+        "value": "8.2",
+        "unit": "mIU/L",
+        "status": "high",
+        "referenceRange": "0.4-4.0",
+        "date": "2026-02-20"
+      }
+    ],
+    "Vitamin D (25-OH)": [
+      {
+        "value": "11",
+        "unit": "ng/mL",
+        "status": "critical",
+        "referenceRange": "30-100",
+        "date": "2026-02-20"
+      }
+    ],
+    "Serum Calcium": [
+      {
+        "value": "8.1",
+        "unit": "mg/dL",
+        "status": "low",
+        "referenceRange": "8.5-10.5",
+        "date": "2026-02-20"
+      }
+    ],
+    "Serum Phosphorus": [
+      {
+        "value": "4.8",
+        "unit": "mg/dL",
+        "status": "high",
+        "referenceRange": "2.5-4.5",
+        "date": "2026-02-20"
+      }
+    ],
+    "Serum Creatinine": [
+      {
+        "value": "1.7",
+        "unit": "mg/dL",
+        "status": "elevated",
+        "referenceRange": "0.5-1.1",
+        "date": "2026-02-20"
+      }
+    ]
+  },
+  "flags": [
+    "eGFR: 38 mL/min/1.73m² (low)",
+    "TSH: 8.2 mIU/L (high)",
+    "Vitamin D (25-OH): 11 ng/mL (critical)",
+    "Serum Calcium: 8.1 mg/dL (low)",
+    "Serum Phosphorus: 4.8 mg/dL (high)",
+    "Serum Creatinine: 1.7 mg/dL (elevated)"
+  ]
+}

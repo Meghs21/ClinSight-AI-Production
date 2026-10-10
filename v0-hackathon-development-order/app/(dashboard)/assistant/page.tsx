@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,13 +26,30 @@ import {
   FileSearch,
   Zap,
   Mic,
+  MicOff,
   Paperclip,
   MoreHorizontal,
   Plus,
   MessageSquare,
   Trash2,
   Search,
+  Globe,
 } from "lucide-react";
+
+// ─── Sarvam supported Indian languages ───────────────────────────────────────
+const SARVAM_LANGUAGES: Record<string, string> = {
+  "en-IN": "🇮🇳 English",
+  "hi-IN": "हिंदी Hindi",
+  "ta-IN": "தமிழ் Tamil",
+  "te-IN": "తెలుగు Telugu",
+  "kn-IN": "ಕನ್ನಡ Kannada",
+  "ml-IN": "മലയാളം Malayalam",
+  "mr-IN": "मराठी Marathi",
+  "bn-IN": "বাংলা Bengali",
+  "gu-IN": "ગુજરાતી Gujarati",
+  "pa-IN": "ਪੰਜਾਬੀ Punjabi",
+  "od-IN": "ଓଡ଼ିଆ Odia",
+};
 import { cn } from "@/lib/utils";
 
 interface Message {
@@ -208,6 +225,72 @@ export default function AssistantPage() {
   const [patientSearch, setPatientSearch] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // ─── Sarvam voice state ───────────────────────────────────────────────────
+  const [voiceLang, setVoiceLang] = useState("en-IN");
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  const startRecording = useCallback(async () => {
+    setVoiceError(null);
+    // Read selectedPatientId at call-time from chatSessions to avoid forward-ref issue with activeChat
+    const currentChat = chatSessions.find((c) => c.id === activeChatId);
+    if (!currentChat?.selectedPatientId) {
+      setVoiceError("Select a patient first before using voice input.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+    } catch {
+      setVoiceError("Microphone access denied. Please allow mic permissions.");
+    }
+  }, [chatSessions, activeChatId]);
+
+  const stopRecording = useCallback(() => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === "inactive") return;
+    recorder.onstop = async () => {
+      setIsRecording(false);
+      setIsTranscribing(true);
+      try {
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const currentChat = chatSessions.find((c) => c.id === activeChatId);
+        const patientId = currentChat?.selectedPatientId || "GENERAL";
+        const formData = new FormData();
+        formData.append("audio", blob, "voice.webm");
+        formData.append("languageCode", voiceLang);
+        formData.append("patientId", patientId);
+        const res = await fetch("http://localhost:4000/api/sarvam/voice-intake", {
+          method: "POST",
+          body: formData,
+        });
+        if (!res.ok) throw new Error(`Sarvam error ${res.status}`);
+        const data = await res.json() as { english_text?: string; clinical_summary?: string; error?: string };
+        const transcript = data.english_text || data.clinical_summary || "";
+        if (transcript) {
+          setInput((prev) => prev ? `${prev} ${transcript}` : transcript);
+        } else {
+          setVoiceError("Could not understand audio. Please try again.");
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Voice transcription failed";
+        setVoiceError(msg);
+      } finally {
+        setIsTranscribing(false);
+        recorder.stream.getTracks().forEach((t) => t.stop());
+      }
+    };
+    recorder.stop();
+  }, [voiceLang, chatSessions, activeChatId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -785,6 +868,41 @@ export default function AssistantPage() {
           </div>
 
           <div className="border-t border-border bg-muted/30 p-4">
+            {/* Sarvam voice error banner */}
+            {voiceError && (
+              <div className="mb-2 flex items-center justify-between rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                <span>⚠️ {voiceError}</span>
+                <button onClick={() => setVoiceError(null)} className="ml-2 font-bold">✕</button>
+              </div>
+            )}
+
+            {/* Transcribing indicator */}
+            {isTranscribing && (
+              <div className="mb-2 flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
+                <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+                <span>Transcribing with Sarvam AI...</span>
+              </div>
+            )}
+
+            {/* Language picker row */}
+            <div className="mb-2 flex items-center gap-2">
+              <Globe className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Voice language:</span>
+              <Select value={voiceLang} onValueChange={setVoiceLang}>
+                <SelectTrigger className="h-7 w-44 rounded-lg border-border/60 bg-background text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(SARVAM_LANGUAGES).map(([code, label]) => (
+                    <SelectItem key={code} value={code} className="text-xs">{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-[10px] text-muted-foreground">
+                Powered by <span className="font-semibold text-foreground">Sarvam AI</span>
+              </span>
+            </div>
+
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -798,13 +916,29 @@ export default function AssistantPage() {
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about patients, medications, lab results..."
+                placeholder={isRecording ? "🔴 Recording… release mic to transcribe" : isTranscribing ? "✨ Transcribing…" : "Ask about patients, or speak in any Indian language…"}
                 className="flex-1 rounded-xl border-border bg-background py-6 text-sm"
+                disabled={isRecording || isTranscribing}
               />
-              <Button type="button" variant="ghost" size="icon" className="shrink-0 rounded-xl text-muted-foreground hover:text-foreground">
-                <Mic className="h-5 w-5" />
+              {/* Mic button — click to start, click again to stop */}
+              <Button
+                type="button"
+                variant={isRecording ? "destructive" : "ghost"}
+                size="icon"
+                className={cn(
+                  "shrink-0 rounded-xl transition-all",
+                  isRecording
+                    ? "animate-pulse text-white shadow-lg"
+                    : "text-muted-foreground hover:text-foreground",
+                  isTranscribing && "opacity-50 cursor-not-allowed"
+                )}
+                disabled={isTranscribing}
+                onClick={isRecording ? stopRecording : startRecording}
+                title={isRecording ? "Stop recording" : `Speak in ${SARVAM_LANGUAGES[voiceLang]}`}
+              >
+                {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
               </Button>
-              <Button type="submit" disabled={!input.trim() || isTyping} className="shrink-0 rounded-xl px-6 shadow-md">
+              <Button type="submit" disabled={!input.trim() || isTyping || isRecording || isTranscribing} className="shrink-0 rounded-xl px-6 shadow-md">
                 <Send className="mr-2 h-4 w-4" />
                 Send
               </Button>

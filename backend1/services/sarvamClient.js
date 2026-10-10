@@ -60,7 +60,7 @@ async function speechToText(audioInput, languageCode = 'ta-IN') {
     const response = await fetch(SARVAM_BASE_URL + '/speech-to-text', {
       method: 'POST',
       headers: { 'api-subscription-key': SARVAM_API_KEY, ...form.getHeaders() },
-      body: form,
+      body: form.getBuffer(),
     });
 
     if (!response.ok) {
