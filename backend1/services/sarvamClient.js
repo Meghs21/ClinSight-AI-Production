@@ -53,7 +53,7 @@ async function speechToText(audioInput, languageCode = 'ta-IN') {
     const form = new FormData();
     form.append('file', audioBuffer, { filename: 'audio.wav', contentType: 'audio/wav' });
     form.append('language_code', languageCode);
-    form.append('model', 'saaras:v2');
+    form.append('model', 'saaras:v3');
     form.append('with_timestamps', 'false');
     form.append('debug_mode', 'false');
 
@@ -78,7 +78,7 @@ async function speechToText(audioInput, languageCode = 'ta-IN') {
       transcript,
       language_code: languageCode,
       language_name: SUPPORTED_LANGUAGES[languageCode],
-      model: 'saaras:v2',
+      model: 'saaras:v3',
     };
   } catch (err) {
     console.error('[Saaras STT Error]:', err.message);
@@ -176,21 +176,20 @@ async function voiceToEnglish(audioInput, languageCode = 'ta-IN') {
     english_text: translationResult.translated_text,
     source_language: languageCode,
     source_language_name: SUPPORTED_LANGUAGES[languageCode],
-    pipeline: 'saaras:v2 -> mayura:v1',
+    pipeline: 'saaras:v3 -> mayura:v1',
   };
 }
 
-// ---- 4. Sarvam-M: LLM Text Generation (OpenAI-compatible) ------------------
+// ---- 4. Sarvam LLM Text Generation (OpenAI-compatible) -----------------------
 
 /**
- * Calls Sarvam-M — Sarvam's multilingual reasoning LLM.
- * Used as a fallback when Anthropic Claude is unavailable.
- * Sarvam-M uses an OpenAI-compatible /v1/chat/completions endpoint.
+ * Calls Sarvam multilingual reasoning LLM (sarvam-105b-conversations).
+ * Used for Indic clinical query assistance and conversational summarization.
  *
  * @param {string} prompt        - User prompt
  * @param {string} systemPrompt  - System instruction
  * @param {number} maxTokens     - Max output tokens (default: 2048)
- * @returns {Promise<{ success: boolean, text: string, model: string }>}
+ * @returns {Promise<{ success: boolean, text: string, model: string, provider: string }>}
  */
 async function generateText(prompt, systemPrompt = '', maxTokens = 2048) {
   checkApiKey();
@@ -207,7 +206,7 @@ async function generateText(prompt, systemPrompt = '', maxTokens = 2048) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'sarvam-m',
+        model: 'sarvam-105b-conversations',
         messages,
         max_tokens: maxTokens,
         temperature: 0.2,
@@ -216,17 +215,17 @@ async function generateText(prompt, systemPrompt = '', maxTokens = 2048) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error('Sarvam-M API error ' + response.status + ': ' + errorText);
+      throw new Error('Sarvam API error ' + response.status + ': ' + errorText);
     }
 
     const data = await response.json();
     const text = data.choices?.[0]?.message?.content || '';
 
-    console.log('[Sarvam-M] Generated ' + text.length + ' chars via sarvam-m');
+    console.log('[Sarvam LLM] Generated ' + text.length + ' chars via sarvam-105b-conversations');
 
-    return { success: true, text, model: 'sarvam-m', provider: 'sarvam' };
+    return { success: true, text, model: 'sarvam-105b-conversations', provider: 'sarvam' };
   } catch (err) {
-    console.error('[Sarvam-M Error]:', err.message);
+    console.error('[Sarvam LLM Error]:', err.message);
     return { success: false, error: err.message };
   }
 }
